@@ -16,7 +16,7 @@ Vulnerabilidades presentes nesta versao (linha de base do curso):
 Ao longo dos encontros, cada uma dessas falhas sera identificada por uma
 ferramenta especifica da esteira e corrigida em uma versao "fixed" do codigo.
 """
-
+import os
 import sqlite3
 
 from flask import Flask, g, redirect, request, session, url_for
