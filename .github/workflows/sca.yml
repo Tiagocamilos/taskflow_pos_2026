@@ -39,10 +39,12 @@ jobs:
       - name: Checkout do codigo
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
 
+      # AGORA: Python fixado, pin por SHA e cache do pip ativo para agilizar builds.
       - name: Configurar Python ${{ env.PYTHON_VERSION }}
         uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5.6.0
         with:
           python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
 
       - name: Instalar pip-audit
         run: pip install "pip-audit==${{ env.PIP_AUDIT_VERSION }}"
@@ -54,3 +56,29 @@ jobs:
       # --ignore-vuln <ID> com justificativa escrita aqui e no docs/.
       - name: Auditar ${{ env.REQUIREMENTS_FILE }}
         run: pip-audit -r ${{ env.REQUIREMENTS_FILE }} --strict --desc
+
+
+# =============================================================================
+# RESUMO DAS MUDANÇAS E BOAS PRÁTICAS APLICADAS NO SCA.YML
+# =============================================================================
+
+# Permissões do GITHUB_TOKEN (permissions: contents: read)
+# - O que mudou: Aplicação explícita de permissão do token do GitHub limitada a apenas leitura do repositório.
+# - Por quê: Reforça o princípio do mínimo privilégio, reduzindo a superfície de ataque em caso de sequestro da execução do pipeline.
+
+# Disparo Agendado / Cron Job (schedule: - cron: "0 9 * * 1")
+# - O que mudou: Adição do gatilho de execução semanal automatizada (toda segunda-feira às 09:00 UTC).
+# - Por quê: Novas vulnerabilidades (CVEs) podem ser descobertas em pacotes antigos sem que haja modificação no código-fonte. O schedule identifica falhas de segurança proativamente em repositórios sem novos commits.
+
+# Centralização das Variáveis no env (PYTHON_VERSION, PIP_AUDIT_VERSION, REQUIREMENTS_FILE)
+# - O que mudou: Parametrização centralizada no topo do arquivo YAML.
+# - Por quê: Garante reprodutibilidade da esteira, elimina dependência de versões dinâmicas não fixadas e mantém a uniformidade do runtime (Python 3.12) em toda a esteira.
+
+# Imutabilidade das Actions via SHA Commit Pinning (actions/checkout e setup-python)
+# - O que mudou: Uso do hash SHA definitivo em vez de tags de release dinâmicas (@v4, @v5).
+# - Por quê: Previne ataques de Supply Chain (Cadeia de Suprimentos), garantindo que atualizações maliciosas nas bibliotecas/actions de terceiros não afetem o ambiente de CI/CD.
+
+# Análise do Composição do Software como Quality Gate (pip-audit + --strict + --desc)
+# - O que mudou: Execução do pip-audit bloqueando a esteira caso qualquer vulnerabilidade seja encontrada, utilizando as flags --strict e --desc.
+# - Por quê: Atua como um Quality Gate rigoroso de SCA que impede a mesclagem de código com dependências vulneráveis. 
+#   A flag --strict assegura que pacotes não auditados falhem a compilação e a flag --desc acelera a triagem dos times ao expor os detalhes das CVEs diretamente nos logs.
