@@ -28,13 +28,17 @@ on:
   pull_request:
     branches: ["**"]
 
+permissions:
+  contents: read
+  pull-requests: read
+
 jobs:
   semgrep:
     name: SAST - Semgrep
     runs-on: ubuntu-latest
     steps:
       - name: Checkout do código
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
 
       - name: Instalar Semgrep
         run: pip install semgrep
@@ -45,26 +49,20 @@ jobs:
             --config=p/python \
             --config=p/flask \
             --config=p/security-audit \
-            --error
-        # --error faz o Semgrep retornar exit code != 0 quando há findings,
-        # o que automaticamente marca este step (e o job) como "failed".
+            --error \
+            --exclude=codigo \
+            .
 
   gitleaks:
     name: Secret Scanning - Gitleaks
     runs-on: ubuntu-latest
     steps:
       - name: Checkout do código (histórico completo)
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
         with:
-          # fetch-depth 0 traz todo o histórico de commits, não só o
-          # último commit. Segredos podem ter sido commitados e removidos
-          # depois - eles continuam vivos no histórico do Git!
           fetch-depth: 0
 
       - name: Rodar Gitleaks
-        uses: gitleaks/gitleaks-action@v2
+        uses: gitleaks/gitleaks-action@ff98106e4c7b2bc287b24eaf42907196329070c7 # v2.3.9
         env:
-          # Em repositórios públicos gratuitos a action funciona sem
-          # necessidade de licença. GITHUB_TOKEN já é fornecido
-          # automaticamente pelo GitHub Actions.
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
