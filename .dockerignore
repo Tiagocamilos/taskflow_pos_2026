@@ -1,3 +1,6 @@
+# Arquivos e diretórios excluídos do contexto de build do Docker.
+# Previne o envio de segredos, históricos e arquivos desnecessários para a imagem.
+
 .git
 .github
 .env
@@ -7,3 +10,16 @@ checklist.md
 README.md
 __pycache__
 *.pyc
+
+
+# =============================================================================
+# RESUMO DAS MUDANÇAS E BOAS PRÁTICAS APLICADAS NO .DOCKERIGNORE
+# =============================================================================
+
+# Proteção contra Vazamento de Segredos e Dados Sensíveis
+# - O que mudou: Ignora arquivos de variáveis de ambiente (.env) e bancos de dados SQLite locais (*.db).
+# - Por quê: Previne que chaves secretas de desenvolvimento e dados de testes locais sejam copiados acidentalmente para as camadas da imagem do container Docker.
+
+# Otimização de Performance do Build e Redução do Tamanho da Imagem
+# - O que mudou: Exclusão de diretórios de controle de versão (.git, .github), artefatos compilados do Python (__pycache__, *.pyc) e documentação interna (README.md, checklist.md, pasta codigo).
+# - Por quê: Reduz o tamanho do contexto enviado ao daemon do Docker, acelera o tempo de build e diminui a superfície de ataque ao manter na imagem apenas o estritamente necessário para o runtime da aplicação.
