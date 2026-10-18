@@ -36,7 +36,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout do codigo
-        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       # AGORA: Python fixado e com o mesmo pin por SHA do ci.yml.
       # Utiliza cache de pip para acelerar futuras execuções das dependências.
@@ -73,7 +73,7 @@ jobs:
       # fetch-depth: 0 -> traz TODO o historico. Segredo apagado do arquivo
       # continua vivo nos commits antigos, entao precisa ser varrido tambem.
       - name: Checkout do codigo (historico completo)
-        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
 
