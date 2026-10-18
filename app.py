@@ -207,7 +207,7 @@ if __name__ == "__main__":
     #        Porta 5001 para evitar conflito com o AirPlay do macOS (porta 5000).
     #        Em producao/container a app roda com gunicorn (ver Dockerfile).
     app.run(host="127.0.0.1", port=5001)
-Teste
+
 
 # =============================================================================
 # RESUMO DAS CORREÇÕES E MELHORIAS DE SEGURANÇA NO APP.PY
