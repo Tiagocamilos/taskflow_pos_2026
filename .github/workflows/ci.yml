@@ -79,4 +79,3 @@ jobs:
 # Substituição do py_compile pelo ruff check .
 # - O que mudou: Substituiu a simples checagem de sintaxe do Python pelo analisador estático (linter) Ruff com versão fixada (0.6.9).
 # - Por quê: Cria um quality gate efetivo, capaz de detectar variáveis não utilizadas, erro de pacotes faltantes (ex: import os), nomes indefinidos e más práticas que o compilador padrão deixava passar.
-v
