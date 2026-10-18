@@ -1,6 +1,6 @@
 | Nº | Item | Status |
 |---:|------|--------|
-| 1 | Repositório privado no GitHub, com @HardSource adicionado como collaborator com permissão **Read** — é assim que o professor acessa a entrega | ? |
+| 1 | Repositório privado no GitHub, com Diegobuarquebr e @HardSource adicionado como collaborator com permissão **Read** — é assim que o professor acessa a entrega | DONE |
 | 2 | **Aula 1** — Branch `main` protegida: Pull Request obrigatório, required status checks e CODEOWNERS | DONE |
 | 3 | **Aula 1** — `ci.yml` disparando em `pull_request`, em `push` na `main` e em `workflow_dispatch`, com instalação de dependências e lint (ruff ou flake8) | DONE |
 | 4 | **Aula 2** — `sast.yml` com Semgrep (`p/python`, `p/flask`, `p/security-audit`, `--error`) e Gitleaks com `fetch-depth: 0` | DONE |
