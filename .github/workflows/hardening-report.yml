@@ -1,0 +1,97 @@
+# =============================================================================
+# Relatorio de Hardening (manual) - TaskFlow
+# Gera as evidencias do docs/hardening.md: Trivy e docker history da imagem
+# ORIGINAL (codigo/app-exemplo) x imagem HARDENED (raiz).
+#
+# NAO e um gate: so roda manualmente (workflow_dispatch) e nao bloqueia nada.
+# Por isso o Trivy usa exit-code 0 aqui - o gate de verdade esta no container.yml.
+# Resultado: resumo na pagina do run + relatorios completos como artifact.
+# =============================================================================
+
+name: Relatorio de Hardening (manual)
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  VULN_IMAGE: taskflow:vuln
+  VULN_CONTEXT: codigo/app-exemplo
+  HARDENED_IMAGE: taskflow:hardened
+  TRIVY_SEVERITY: HIGH,CRITICAL
+
+jobs:
+  relatorio:
+    name: Trivy e docker history - antes x depois
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout do codigo
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+
+      - name: Build da imagem ORIGINAL (antes)
+        run: docker build -t ${{ env.VULN_IMAGE }} ${{ env.VULN_CONTEXT }}
+
+      - name: Build da imagem HARDENED (depois)
+        run: docker build -t ${{ env.HARDENED_IMAGE }} .
+
+      # Relatorio apenas (exit-code 0): este workflow nao e gate.
+      - name: Trivy - antes
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
+        with:
+          image-ref: ${{ env.VULN_IMAGE }}
+          severity: ${{ env.TRIVY_SEVERITY }}
+          scanners: vuln
+          format: table
+          exit-code: "0"
+          output: trivy-antes.txt
+
+      - name: Trivy - depois
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
+        with:
+          image-ref: ${{ env.HARDENED_IMAGE }}
+          severity: ${{ env.TRIVY_SEVERITY }}
+          scanners: vuln
+          format: table
+          exit-code: "0"
+          output: trivy-depois.txt
+
+      - name: docker history - antes e depois
+        run: |
+          docker history --no-trunc ${{ env.VULN_IMAGE }}     > history-antes.txt
+          docker history --no-trunc ${{ env.HARDENED_IMAGE }} > history-depois.txt
+
+      # Conta HIGH/CRITICAL e monta o resumo na pagina do run (copiar para o docs/).
+      - name: Resumo para o docs/hardening.md
+        run: |
+          soma() { grep -oE "$1: [0-9]+" "$2" | awk '{s+=$2} END {print s+0}'; }
+          {
+            echo "## Trivy (${{ env.TRIVY_SEVERITY }})"
+            echo ""
+            echo "| | Antes | Depois |"
+            echo "|---|---|---|"
+            echo "| CVEs HIGH | $(soma HIGH trivy-antes.txt) | $(soma HIGH trivy-depois.txt) |"
+            echo "| CVEs CRITICAL | $(soma CRITICAL trivy-antes.txt) | $(soma CRITICAL trivy-depois.txt) |"
+            echo ""
+            echo "## docker history | grep -i password"
+            echo ""
+            echo "**Antes:**"
+            echo '```text'
+            grep -i password history-antes.txt | cut -c1-200 || echo "(nada encontrado)"
+            echo '```'
+            echo "**Depois:**"
+            echo '```text'
+            grep -i password history-depois.txt | cut -c1-200 || echo "(nada encontrado)"
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Publicar relatorios completos
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: relatorio-hardening
+          path: |
+            trivy-antes.txt
+            trivy-depois.txt
+            history-antes.txt
+            history-depois.txt
