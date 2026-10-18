@@ -4,14 +4,21 @@
 # Dependencias sem CVEs conhecidas, auditadas pelo pip-audit (sca.yml) e
 # mantidas sob monitoramento continuo pelo Dependabot (.github/dependabot.yml).
 
-Flask==3.1.3
-Jinja2==3.1.6
-Werkzeug==3.1.9
-MarkupSafe==3.0.4
-itsdangerous==2.2.0
-gunicorn==26.2.0
-python-dotenv==1.2.2
+#Flask==3.1.3
+#Jinja2==3.1.6
+#Werkzeug==3.1.9
+#MarkupSafe==3.0.4
+#itsdangerous==2.2.0
+#gunicorn==26.2.0
+#python-dotenv==1.2.2
 
+Flask==3.0.3
+Jinja2==3.1.4
+Werkzeug==3.0.6
+PyYAML==6.0.2
+requests==2.32.3
+markupsafe>=2.1.1
+itsdangerous==2.2.0
 
 # =============================================================================
 # RESUMO DAS MUDANÇAS E BOAS PRÁTICAS APLICADAS NO REQUIREMENTS.TXT
@@ -32,4 +39,3 @@ python-dotenv==1.2.2
 # Suporte ao Gerenciamento Seguro de Configurações (python-dotenv==1.2.2)
 # - O que mudou: Adição da biblioteca `python-dotenv`.
 # - Por quê: Permite o carregamento de variáveis de ambiente em ambientes de desenvolvimento local sem a necessidade de expor ou hardcodar segredos (como chaves secretas e senhas) no código-fonte.
-vv
