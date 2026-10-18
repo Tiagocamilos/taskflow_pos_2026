@@ -39,10 +39,12 @@ jobs:
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
 
       # AGORA: Python fixado e com o mesmo pin por SHA do ci.yml.
+      # Utiliza cache de pip para acelerar futuras execuções das dependências.
       - name: Configurar Python ${{ env.PYTHON_VERSION }}
         uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5.6.0
         with:
           python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
 
       # setuptools<81: versoes novas removeram o pkg_resources, que ainda e
       # importado por uma dependencia do Semgrep (opentelemetry). Sem essa
@@ -81,3 +83,32 @@ jobs:
         uses: gitleaks/gitleaks-action@ff98106e4c7b2bc287b24eaf42907196329070c7 # v2.3.9
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+
+# =============================================================================
+# RESUMO DAS MUDANÇAS E BOAS PRÁTICAS APLICADAS NO SAST.YML
+# =============================================================================
+
+# Permissões do GITHUB_TOKEN (permissions: contents: read, pull-requests: read)
+# - O que mudou: Definição restrita de permissões globais do token.
+# - Por quê: Limita as ações da pipeline para apenas o estritamente necessário (ler código e dados de PR), prevenindo ações não autorizadas em caso de comprometimento da Action.
+
+# Padronização de Gatilhos (on: push, pull_request, workflow_dispatch)
+# - O que mudou: Restrição dos disparos de branch genérico ("**") para focar na branch principal `main` e permitir execução manual.
+# - Por quê: Uniformiza a política de execução da esteira (Quality Gate nos PRs para a main e validação na integração).
+
+# Fixação por SHA dos commits nas Actions (actions/checkout, setup-python e gitleaks-action)
+# - O que mudou: Troca de tags de versão dinâmicas (@v4, @v2.3.9) por hashes imutáveis SHA-1.
+# - Por quê: Bloqueia ataques na cadeia de suprimentos (Supply Chain Attacks), assegurando a integridade do código das dependências de terceiros executadas no runner.
+
+# Centralização e Fixação de Versão (SEMGREP_VERSION: "1.90.0")
+# - O que mudou: Definição da versão exata do Semgrep no bloco env e compatibilidade via setuptools<81.
+# - Por quê: Elimina inconsistências e builds não reprodutíveis decorrentes do uso do `pip install semgrep` sem versão, além de evitar travamentos causados por quebras de compatibilidade em libs Python internas.
+
+# Análise Estática de Código (Semgrep SAST Gate)
+# - O que mudou: Execução das regras p/python, p/flask e p/security-audit com a flag --error.
+# - Por quê: Detecta falhas de segurança no código-fonte (SQL Injection, XSS, etc.) e bloqueia o pipeline caso vulnerabilidades sejam encontradas, funcionando como Quality Gate real.
+
+# Varredura de Histórico Completo de Segredos (Gitleaks + fetch-depth: 0)
+# - O que mudou: Inclusão do checkout completo (fetch-depth: 0) para a execução do Gitleaks.
+# - Por quê: Impede que segredos, credenciais ou tokens expostos em commits anteriores passem desapercebidos mesmo que já tenham sido removidos no commit mais recente.
