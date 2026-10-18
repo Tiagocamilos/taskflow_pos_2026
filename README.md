@@ -11,10 +11,10 @@ Atividade 1 da disciplina DevSecOps (Aulas 1, 2 e 3).
 | Membro | GitHub | Papel |
 |---|---|---|
 | Tiago Camilo | @Tiagocamilos | TODO |
-| TODO | @dhuberto | TODO |
-| TODO | @emcsmalone | TODO |
-| TODO | @helierison | TODO |
-| TODO | @tongenx | TODO |
+| Danilo Huberto| @dhuberto | TODO |
+| Eric Malone | @emcsmalone | TODO |
+| Helierison Cardoso | @helierison | TODO |
+| Everton Genuino | @tongenx | TODO |
 
 ---
 
