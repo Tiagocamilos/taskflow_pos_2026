@@ -15,16 +15,18 @@ jobs:
     name: Build da imagem e scan com Trivy
     runs-on: ubuntu-latest
     steps:
+      # pin por SHA (imutável) em vez de tag mutável — evita supply chain attack
       - name: Checkout do codigo
-      # Muda pin por SHA
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
 
+      # build da imagem já tagueada com o SHA do commit (rastreabilidade)
       - name: Build da imagem Docker
-       # Muda pin por SHA
         run: docker build -t taskflow:${{ github.sha }} .
 
+      # pin por SHA (imutável) — evita que uma tag re-apontada rode código malicioso
+      # gate: falha o build (exit-code 1) se houver HIGH ou CRITICAL
+      # ignore-unfixed: ignora CVEs sem correção disponível (evita falso bloqueio)
       - name: Trivy image (gate HIGH,CRITICAL)
-       # Muda pin por SHA
         uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
         with:
           image-ref: taskflow:${{ github.sha }}
