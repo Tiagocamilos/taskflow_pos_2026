@@ -1,67 +1,78 @@
 # =============================================================================
-# Workflow de exemplo: SAST (Semgrep) + Secret Scanning (Gitleaks)
-#
-# COMO USAR:
-#   Copie este arquivo para ".github/workflows/sast.yml" na raiz do seu
-#   repositório (o GitHub só reconhece workflows dentro dessa pasta exata).
-#
-# O QUE ELE FAZ:
-#   1. Roda o Semgrep contra o código-fonte Python usando rulesets públicos
-#      focados em Python/Flask/segurança geral.
-#   2. Roda o Gitleaks contra todo o histórico do repositório para detectar
-#      segredos (chaves, tokens, senhas) commitados.
-#   3. Falha o job (exit code != 0) se qualquer uma das ferramentas encontrar
-#      um problema, o que bloqueia o merge do Pull Request se o repositório
-#      tiver "branch protection" configurada para exigir o check verde.
-#
-# Este é o "caminho simples" descrito no Encontro 6: falhar o job e ler o
-# log do próprio GitHub Actions. Uma evolução possível (mencionada na aula,
-# não implementada aqui para não aumentar a complexidade) é publicar os
-# achados em formato SARIF na aba "Security > Code Scanning" do GitHub.
+# SAST e Secret Scanning - TaskFlow
+# - Semgrep: analisa o codigo Python em busca de vulnerabilidades (SQLi, XSS, debug...).
+# - Gitleaks: varre TODO o historico do Git em busca de segredos commitados.
+# Os dois jobs sao required checks: qualquer achado bloqueia o merge do PR.
 # =============================================================================
 
 name: SAST e Secret Scanning
 
+# ANTES: push/pull_request em qualquer branch ("**") e sem disparo manual.
+# AGORA: mesmo padrao do ci.yml -> PR para a main (o portao), push na main
+#        e workflow_dispatch para rodar manualmente.
 on:
   push:
-    branches: ["**"]
+    branches: [main]
   pull_request:
-    branches: ["**"]
+    branches: [main]
+  workflow_dispatch:
 
+# Minimo privilegio: ler o codigo; pull-requests: read e usado pelo Gitleaks
+# para listar os commits do PR.
 permissions:
   contents: read
   pull-requests: read
+
+# AGORA: versoes centralizadas (antes: "pip install semgrep" sem versao -> build
+#        nao reprodutivel, cada execucao podia usar um Semgrep diferente).
+env:
+  PYTHON_VERSION: "3.12"
+  SEMGREP_VERSION: "1.90.0"
 
 jobs:
   semgrep:
     name: SAST - Semgrep
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout do código
-        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - name: Checkout do codigo
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+
+      # AGORA: Python fixado e com o mesmo pin por SHA do ci.yml.
+      - name: Configurar Python ${{ env.PYTHON_VERSION }}
+        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5.6.0
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
 
       - name: Instalar Semgrep
-        run: pip install semgrep
+        run: pip install "semgrep==${{ env.SEMGREP_VERSION }}"
 
-      - name: Rodar Semgrep (rulesets Python + Flask + auditoria de segurança)
+      # Rulesets exigidos pela atividade: python, flask e security-audit.
+      # --error  -> exit code != 0 se houver achado (e isso que torna o job um GATE).
+      # --exclude=codigo -> ignora o material de referencia do professor
+      #                     (exemplos vulneraveis de proposito, nao fazem parte da app).
+      - name: Rodar Semgrep (python + flask + security-audit)
         run: |
           semgrep scan \
             --config=p/python \
             --config=p/flask \
             --config=p/security-audit \
-            --error \
             --exclude=codigo \
+            --error \
             .
 
   gitleaks:
     name: Secret Scanning - Gitleaks
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout do código (histórico completo)
-        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      # fetch-depth: 0 -> traz TODO o historico. Segredo apagado do arquivo
+      # continua vivo nos commits antigos, entao precisa ser varrido tambem.
+      - name: Checkout do codigo (historico completo)
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
           fetch-depth: 0
 
+      # O Gitleaks le automaticamente o .gitleaks.toml da raiz (allowlist justificada
+      # dos segredos didaticos da linha de base).
       - name: Rodar Gitleaks
         uses: gitleaks/gitleaks-action@ff98106e4c7b2bc287b24eaf42907196329070c7 # v2.3.9
         env:
