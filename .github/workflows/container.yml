@@ -1,3 +1,9 @@
+# =============================================================================
+# Container - Build, Trivy e smoke test - TaskFlow
+# Builda a imagem, escaneia com Trivy (gate HIGH,CRITICAL) e sobe o container
+# com flags de runtime seguras para confirmar que a imagem hardened funciona.
+# =============================================================================
+
 name: Container - Build e Trivy
 
 on:
@@ -7,29 +13,65 @@ on:
     branches: [main]
   workflow_dispatch:
 
+# Minimo privilegio: so leitura do codigo.
 permissions:
   contents: read
+
+# Nada hardcoded nos steps: nome da imagem, Dockerfile, porta e severidade
+# de corte ficam centralizados aqui (boa pratica de Pipeline as Code).
+env:
+  IMAGE_NAME: taskflow
+  DOCKERFILE_PATH: Dockerfile
+  APP_PORT: "5000"
+  TRIVY_SEVERITY: HIGH,CRITICAL
 
 jobs:
   build-e-trivy:
     name: Build da imagem e scan com Trivy
     runs-on: ubuntu-latest
     steps:
-      # pin por SHA (imutável) em vez de tag mutável — evita supply chain attack
+      # pin por SHA (imutavel) em vez de tag mutavel - evita supply chain attack
       - name: Checkout do codigo
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
 
-      # build da imagem já tagueada com o SHA do commit (rastreabilidade)
+      # build da imagem ja tagueada com o SHA do commit (rastreabilidade)
       - name: Build da imagem Docker
-        run: docker build -t taskflow:${{ github.sha }} .
+        run: docker build -f ${{ env.DOCKERFILE_PATH }} -t ${{ env.IMAGE_NAME }}:${{ github.sha }} .
 
-      # pin por SHA (imutável) — evita que uma tag re-apontada rode código malicioso
+      # pin por SHA (imutavel) - evita que uma tag re-apontada rode codigo malicioso
       # gate: falha o build (exit-code 1) se houver HIGH ou CRITICAL
-      # ignore-unfixed: ignora CVEs sem correção disponível (evita falso bloqueio)
-      - name: Trivy image (gate HIGH,CRITICAL)
+      # ignore-unfixed: CVEs sem correcao publicada nao bloqueiam (nao ha versao
+      #   para atualizar); ficam registradas no docs/hardening.md como risco aceito
+      - name: Trivy image (gate ${{ env.TRIVY_SEVERITY }})
         uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
         with:
-          image-ref: taskflow:${{ github.sha }}
-          severity: HIGH,CRITICAL
+          image-ref: ${{ env.IMAGE_NAME }}:${{ github.sha }}
+          severity: ${{ env.TRIVY_SEVERITY }}
           ignore-unfixed: true
           exit-code: "1"
+          format: table
+
+      # Smoke test com flags de runtime seguras:
+      #   --read-only                      -> filesystem da imagem imutavel
+      #   --tmpfs /tmp                     -> area temporaria em memoria (gunicorn usa)
+      #   -v taskflow-data:/app/data       -> unica pasta gravavel (banco SQLite)
+      #   --cap-drop ALL                   -> remove todas as capabilities do kernel
+      #   --security-opt no-new-privileges -> bloqueia escalada de privilegio (setuid)
+      # SECRET_KEY gerada na hora (aleatoria e descartavel) -> nada hardcoded.
+      - name: Smoke test do container (flags de runtime seguras)
+        run: |
+          docker volume create taskflow-data
+          docker run -d --name taskflow -p ${{ env.APP_PORT }}:${{ env.APP_PORT }} \
+            --read-only --tmpfs /tmp \
+            -v taskflow-data:/app/data \
+            --cap-drop ALL --security-opt no-new-privileges \
+            -e TASKFLOW_SECRET_KEY="$(openssl rand -hex 32)" \
+            ${{ env.IMAGE_NAME }}:${{ github.sha }}
+          sleep 5
+          curl -fsS http://localhost:${{ env.APP_PORT }}/login > /dev/null
+          echo "Container respondeu em /login"
+
+      # Em caso de falha, mostra os logs do container para facilitar o debug.
+      - name: Logs do container (se falhar)
+        if: failure()
+        run: docker logs taskflow || true
