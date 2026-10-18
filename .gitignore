@@ -1,4 +1,20 @@
+# Arquivos e diretórios ignorados pelo controle de versão do Git.
+# Impede a persistência de segredos, ambientes virtuais e artefatos locais no repositório.
+
 .venv/
 __pycache__/
 taskflow.db
 .env
+
+
+# =============================================================================
+# RESUMO DAS MUDANÇAS E BOAS PRÁTICAS APLICADAS NO .GITIGNORE
+# =============================================================================
+
+# Prevenção contra Exposição indesejada de Credenciais (Secret Scanning)
+# - O que mudou: Bloqueio permanente de arquivos de configuração contendo segredos (.env).
+# - Por quê: Garante que chaves de criptografia e senhas de administração nunca entrem no histórico de commits do repositório, evitando alertas em ferramentas como o Gitleaks e vazamentos de dados.
+
+# Isolamento de Artefatos Locais e Estado da Aplicação
+# - O que mudou: Exclusão do ambiente virtual Python (.venv/), caches de compilação (__pycache__/) e arquivo local de banco de dados SQLite (taskflow.db).
+# - Por quê: Mantém o repositório Git limpo, focado exclusivamente no código-fonte e configurações versionáveis, evitando conflitos de mesclagem e divergências entre ambientes de desenvolvimento.
