@@ -41,7 +41,9 @@ app.config["SECRET_KEY"] = _secret_key
 app.config["SESSION_COOKIE_HTTPONLY"] = True
 app.config["SESSION_COOKIE_SAMESITE"] = "Lax"
 
-DATABASE = "taskflow.db"
+# Caminho do banco configuravel: no container aponta para /app/data (unica
+# pasta gravavel pelo usuario nao-root). Localmente continua "taskflow.db".
+DATABASE = os.environ.get("TASKFLOW_DATABASE", "taskflow.db")
 
 
 def get_db():
