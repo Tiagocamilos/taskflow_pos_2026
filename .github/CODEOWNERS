@@ -1,5 +1,15 @@
-# Default owners for everything in the repo
-* @Tiagocamilos
+# Donos do codigo: todo PR para a main precisa da aprovacao de pelo menos um deles.
+# Regra: vale a ULTIMA linha que casa com o arquivo.
+# Ninguem aprova o proprio PR, por isso cada regra tem mais de um dono.
 
-# CI/CD and workflows
-/.github/workflows/ @dhuberto @emcsmalone @helierison @tongenx
+# Padrao: qualquer membro do grupo pode revisar
+*                       @Tiagocamilos @dhuberto @emcsmalone @helierison @tongenx
+
+# Pipelines (gates de seguranca)
+/.github/workflows/     @Tiagocamilos @dhuberto @emcsmalone @helierison @tongenx
+
+# Arquivos sensiveis: imagem, dependencias, Dependabot e as proprias regras de revisao
+/Dockerfile             @Tiagocamilos @dhuberto @emcsmalone @helierison @tongenx
+/requirements.txt       @Tiagocamilos @dhuberto @emcsmalone @helierison @tongenx
+/.github/dependabot.yml @Tiagocamilos @dhuberto @emcsmalone @helierison @tongenx
+/.github/CODEOWNERS     @Tiagocamilos @dhuberto @emcsmalone @helierison @tongenx
