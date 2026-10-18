@@ -1,17 +1,51 @@
-<h1>Minhas tarefas ({{ username }})</h1>
-<form method="get">
+<!doctype html>
+<html lang="pt-br">
+<head>
+  <meta charset="utf-8">
+  <title>TaskFlow - Minhas Tarefas</title>
+</head>
+<body>
+  <!-- Variaveis vindas do contexto do Flask sao saneadas automaticamente no HTML. -->
+  <h1>Minhas tarefas ({{ username }})</h1>
+
+  <!-- Formulario de busca via GET com autopreenchimento seguro do termo buscado.  -->
+  <form method="get">
     <input type="text" name="q" placeholder="buscar tarefa" value="{{ search }}">
     <input type="submit" value="Buscar">
-</form>
-<ul>
+  </form>
+
+  <!-- Iteracao das tarefas cadastradas no SQLite. Cada campo (title, description) -->
+  <!-- e sanitizado pelo Jinja2 no momento da renderizacao (protecao anti-XSS).    -->
+  <ul>
     {% for row in rows %}
     <li>
-        <b>{{ row["title"] }}</b> - {{ row["description"] }}
-        {% if row["done"] %}(feita){% endif %}
+      <b>{{ row["title"] }}</b> - {{ row["description"] }}
+      {% if row["done"] %}(feita){% endif %}
     </li>
     {% else %}
     <li>Nenhuma tarefa encontrada.</li>
     {% endfor %}
-</ul>
-<a href="{{ url_for('new_task') }}">Nova tarefa</a> |
-<a href="{{ url_for('logout') }}">Sair</a>
+  </ul>
+
+  <!-- Navegacao segura do sistema por rotas nomeadas.                            -->
+  <a href="{{ url_for('new_task') }}">Nova tarefa</a> |
+  <a href="{{ url_for('logout') }}">Sair</a>
+</body>
+</html>
+
+
+<!-- ============================================================================= -->
+<!-- RESUMO DAS MUDANÇAS E BOAS PRÁTICAS APLICADAS NO TASKS.HTML                  -->
+<!-- ============================================================================= -->
+
+<!-- Remediação de Stored XSS via Autoescape Nativo                                -->
+<!-- - O que mudou: Substituição da interpolação de f-strings (`{row['description']}`) -->
+<!--   pela renderização controlada Jinja2 (`{{ row['description'] }}`).          -->
+<!-- - Por quê: O Jinja2 converte caracteres como `<` e `>` em entidades HTML     -->
+<!--   inofensivas, impedindo a execução de scripts maliciosos gravados no banco. -->
+
+<!-- Conformidade com Quality Gate de SAST (Semgrep)                              -->
+<!-- - O que mudou: Remoção completa do padrão de código flagged por              -->
+<!--   `directly-returned-format-string`.                                         -->
+<!-- - Por quê: Permite que o pipeline automatizado (`sast.yml`) passe com sucesso -->
+<!--   na checagem estática de segurança exigida como Required Status Check.      -->v
