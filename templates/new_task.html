@@ -1,0 +1,7 @@
+<h1>Nova tarefa</h1>
+<form method="post">
+    <label>Titulo: <input type="text" name="title" required maxlength="100"></label><br>
+    <label>Descricao: <textarea name="description" maxlength="500"></textarea></label><br>
+    <input type="submit" value="Salvar">
+</form>
+<a href="{{ url_for('tasks') }}">Voltar</a>
