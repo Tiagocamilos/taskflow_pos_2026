@@ -1,14 +1,39 @@
 <!doctype html>
 <html lang="pt-br">
-<head><meta charset="utf-8"><title>TaskFlow - Login</title></head>
+<head>
+  <meta charset="utf-8">
+  <title>TaskFlow - Login</title>
+</head>
 <body>
-  {# Jinja2 escapa automaticamente as variaveis {{ ... }} (anti-XSS). #}
+  <!-- O Jinja2 trata todas as variaveis inseridas em {{ ... }} com autoescape   -->
+  <!-- ativado por padrao, convertendo caracteres de marcacao HTML em entidades. -->
   <h1>TaskFlow - Login</h1>
+
+  <!-- Formularios de autenticacao utilizam metodo POST para evitar expor        -->
+  <!-- credenciais (usuario/senha) na URL da requisicao.                        -->
   <form method="post">
     Usuario: <input type="text" name="username"><br>
     Senha: <input type="password" name="password"><br>
     <input type="submit" value="Entrar">
   </form>
+
+  <!-- Renderizacao condicional segura de mensagens de erro emitidas pelo backend. -->
   {% if error %}<p style="color:red">{{ error }}</p>{% endif %}
 </body>
 </html>
+
+
+<!-- ============================================================================= -->
+<!-- RESUMO DAS MUDANÇAS E BOAS PRÁTICAS APLICADAS NO LOGIN.HTML                  -->
+<!-- ============================================================================= -->
+
+<!-- Adição de Template HTML para Interface de Login                               -->
+<!-- - O que mudou: Extração da marcação HTML do formulário de login para um      -->
+<!--   arquivo de template Jinja2 dedicado.                                       -->
+<!-- - Por quê: Elimina a renderização de strings HTML diretamente no Python,       -->
+<!--   permitindo o tratamento automatizado e seguro de saídas pelo Flask/Jinja.  -->
+
+<!-- Autoescape e Sanitização de Erros                                             -->
+<!-- - O que mudou: Exibição da variável de erro via {{ error }} no template.      -->
+<!-- - Por quê: Protege a aplicação contra Reflected XSS no tratamento de          -->
+<!--   mensagens de falha de autenticação devolvidas pelo backend.               -->
