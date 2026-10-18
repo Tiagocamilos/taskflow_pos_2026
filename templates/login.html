@@ -30,31 +30,3 @@
     </form>
 </body>
 </html>
-
-<!--
-=============================================================================
-RESUMO DAS CORREÇÕES E PRÁTICAS DE HARDENING NO TEMPLATES/LOGIN.HTML
-=============================================================================
-
-Sintaxe Correta de Comentários no Jinja2 ({# ... #})
-- O que mudou: Substituição de comentários HTML contendo lógica
-  do Jinja por blocos de comentário nativos do Jinja2 ({# ... #}).
-- Por quê: O analisador do Jinja2 tentava interpretar a pontuação e os
-  símbolos '{{ ... }}' contidos dentro de comentários HTML normais como se
-  fossem comandos executáveis, gerando 'jinja2.exceptions.TemplateSyntaxError'
-  e disparando o erro HTTP 500 no smoke test do container.
-
-Saneamento e Mitigação de XSS Refletido (Autoescape)
-- O que mudou: Exibição da mensagem de erro utilizando a interpolação padrão
-  {{ error }} sem uso da flag |safe.
-- Por quê: Assegura que entradas potencialmente maliciosas enviadas na rota
-  de login sejam sanitizadas antes da renderização no navegador, neutralizando
-  ataques do tipo Cross-Site Scripting (XSS) Refletido.
-
-Controles de Segurança de Formulário (Método POST e Autocomplete)
-- O que mudou: Uso obrigatório de método POST para submissão e adição de
-  'autocomplete="off"' no campo de nome de usuário.
-- Por quê: Impede que credenciais sensíveis vazem nos cabeçalhos HTTP (Referer)
-  ou em históricos de navegação/proxy e dificulta a extração inadvertida de
-  dados de login em dispositivos compartilhados.
--->
