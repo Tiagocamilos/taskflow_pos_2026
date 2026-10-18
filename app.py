@@ -207,3 +207,33 @@ if __name__ == "__main__":
     #        Porta 5001 para evitar conflito com o AirPlay do macOS (porta 5000).
     #        Em producao/container a app roda com gunicorn (ver Dockerfile).
     app.run(host="127.0.0.1", port=5001)
+
+
+# =============================================================================
+# RESUMO DAS CORREÇÕES E MELHORIAS DE SEGURANÇA NO APP.PY
+# =============================================================================
+
+# Remediacao de SQL Injection (Consultas Parametrizadas)
+# - O que mudou: Uso do placeholder "?" nas consultas no login e na busca por tarefas.
+# - Por quê: Elimina a concatenacao de strings enviadas por usuarios, garantindo que a entrada do usuario seja tratada estritamente como dado e nao executada como instrucao SQL.
+
+# Mitigacao de XSS e Injecao de HTML (Templates Jinja2)
+# - O que mudou: Substituicao de HTML formatado diretamente no codigo por `render_template` com arquivos `.html`.
+# - Por quê: O Jinja2 ativa por padrao o mecanismo de autoescape, convertendo caracteres perigosos (como `<script>`) em entidades HTML seguras (`&lt;script&gt;`), saneando as descricoes de tarefas.
+
+# Remocao de Segredos Hardcoded (TASKFLOW_SECRET_KEY e TASKFLOW_ADMIN_PASSWORD)
+# - O que mudou: Leitura obrigatoria da `SECRET_KEY` e da senha do administrador a partir de variaveis de ambiente (via python-dotenv ou runtime).
+# - Por quê: Previne o vazamento de chaves secretas e senhas padrao no historico de commits do Git e ativa o comportamento de fail-fast caso a chave nao esteja definida.
+
+# Armazenamento Seguro de Credenciais (Hash de Senha)
+# - O que mudou: Utilizacao de `generate_password_hash` e `check_password_hash` da biblioteca Werkzeug.
+# - Por quê: Evita o armazenamento de senhas em texto puro no banco de dados SQLite, aplicando algoritmo de hashing forte com inclusao automatica de salt.
+
+# Remocao de Endpoint Exposto (/debug/info)
+# - O que mudou: Exclusao completa do endpoint `/debug/info`.
+# - Por quê: Impede a exposicao sensivel de informacoes do ambiente e o vazamento do token de sessao/SECRET_KEY.
+
+# Hardening no Servidor de Desenvolvimento e Coockie de Sessao
+# - O que mudou: Desativacao da flag `debug=True`, mudanca do host para `127.0.0.1` e adicao de `SESSION_COOKIE_HTTPONLY = True` e `SESSION_COOKIE_SAMESITE = 'Lax'`.
+# - Por quê: Bloqueia a execucao remota de codigo pelo debugger do Werkzeug na rede local e protege o cookie de sessao contra ataques do tipo CSRF e leitura via JavaScript malicioso.
+vv
