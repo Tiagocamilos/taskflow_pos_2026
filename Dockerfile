@@ -1,29 +1,43 @@
-# Dockerfile INSEGURO - linha de base usada no Modulo 2 (Hardening).
-# Cada comentario "# FALHA" indica uma pratica que sera corrigida
-# durante a aula de hardening de containers.
+# Dockerfile HARDENED - corrige as seis falhas do Dockerfile original.
 
-# FALHA 1: tag "latest" nao fixada -> build nao reprodutivel e pode
-# puxar uma imagem base com vulnerabilidades novas sem aviso.
-FROM python:latest
-#FROM python:3.12-slim
+# CORRIGIDO (FALHA 1): tag fixada e imagem slim (menos pacotes de SO,
+# menos CVEs), em vez de "latest". Build multi-stage: o estagio final
+# nao carrega cache nem ferramentas de instalacao.
+FROM python:3.12-slim AS build
 
-# FALHA 2: executando como root (nenhum USER definido).
 WORKDIR /app
 
 COPY requirements.txt .
 
-# FALHA 3: nenhuma verificacao de integridade / hash das dependencias.
-RUN pip install -r requirements.txt
+# CORRIGIDO (FALHA 3): --no-cache-dir evita deixar cache de download na camada.
+RUN pip install --no-cache-dir -r requirements.txt
 
-COPY . .
+FROM python:3.12-slim AS runtime
 
-# FALHA 4: segredo passado como ARG/ENV fica gravado nas camadas
-# da imagem e pode ser extraido com "docker history".
-ENV ADMIN_PASSWORD=admin123
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1
 
-# FALHA 5: expondo a porta do servidor de desenvolvimento do Flask,
-# que nao e apto para producao.
+COPY --from=build /usr/local/lib/python3.12/site-packages /usr/local/lib/python3.12/site-packages
+COPY --from=build /usr/local/bin /usr/local/bin
+
+WORKDIR /app
+
+# CORRIGIDO (FALHA 2): usuario e grupo dedicados, sem privilegios de root.
+RUN groupadd --system taskflow && \
+    useradd --system --gid taskflow --home-dir /app --shell /usr/sbin/nologin taskflow && \
+    chown taskflow:taskflow /app
+
+COPY --chown=taskflow:taskflow . .
+
+# CORRIGIDO (FALHA 4): nenhum segredo em ENV/ARG. TASKFLOW_SECRET_KEY deve
+# ser injetada em tempo de execucao: docker run -e TASKFLOW_SECRET_KEY=...
+
+# CORRIGIDO (FALHA 5): EXPOSE apenas documenta a porta; o servidor de
+# desenvolvimento do Flask nao e mais usado.
 EXPOSE 5000
 
-# FALHA 6: container roda com debug habilitado e como root.
-CMD ["python", "app.py"]
+USER taskflow
+
+# CORRIGIDO (FALHA 6): gunicorn (WSGI de producao) no lugar de "python app.py".
+# Sem debug: o bloco __main__ do app.py nao e executado.
+CMD ["sh", "-c", "python -c 'from app import app, init_db; app.app_context().push(); init_db()' && exec gunicorn --bind 0.0.0.0:5000 --workers 2 app:app"]
