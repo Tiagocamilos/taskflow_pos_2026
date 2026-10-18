@@ -1,31 +1,32 @@
 """
-TaskFlow - Aplicacao de exemplo da disciplina DevSecOps.
+TaskFlow - Aplicacao de exemplo da disciplina DevSecOps (versao CORRIGIDA).
 
-ATENCAO: Esta aplicacao contem vulnerabilidades INTRODUZIDAS DE PROPOSITO
-para fins didaticos. NUNCA use este codigo como referencia de boas praticas
-e NUNCA implante em ambiente de producao ou exposto a internet.
-
-Vulnerabilidades presentes nesta versao (linha de base do curso):
-  1. SQL Injection no login e na busca de tarefas (Modulo 3 - SAST)
-  2. Cross-Site Scripting (XSS) armazenado na descricao da tarefa (Modulo 3/4)
-  3. Segredo de sessao (SECRET_KEY) hardcoded no codigo (Modulo 1/3)
-  4. Senhas armazenadas em texto puro no banco (Modulo 2/3)
-  5. Endpoint de debug exposto publicamente (Modulo 2/4)
-  6. Dependencias com CVEs conhecidas em requirements.txt (Modulo 3 - SCA)
-
-Ao longo dos encontros, cada uma dessas falhas sera identificada por uma
-ferramenta especifica da esteira e corrigida em uma versao "fixed" do codigo.
+Vulnerabilidades da linha de base e como foram corrigidas:
+  1. SQL Injection (login e busca)  -> consultas parametrizadas ("?").
+  2. XSS armazenado                 -> HTML em templates Jinja2 (autoescape).
+  3. SECRET_KEY hardcoded           -> lida de TASKFLOW_SECRET_KEY (ambiente/.env).
+  4. Senhas em texto puro           -> hash com salt (werkzeug.security); senha
+                                       inicial do admin vem de TASKFLOW_ADMIN_PASSWORD.
+  5. Endpoint /debug/info exposto   -> removido (vazava a SECRET_KEY).
+  6. debug=True e host 0.0.0.0      -> removidos; em producao roda via gunicorn.
+  (Dependencias com CVE sao tratadas no requirements.txt + pip-audit/Dependabot.)
 """
+
 import os
 import sqlite3
 
-from flask import Flask, g, redirect, request, session, url_for
+from dotenv import load_dotenv
+from flask import Flask, g, redirect, render_template, request, session, url_for
+from werkzeug.security import check_password_hash, generate_password_hash
 
-# Vulnerabilidade #3: segredo hardcoded no repositorio.
-# Uma ferramenta de SAST/secret-scanning (ex: Gitleaks, Semgrep) deve
-# sinalizar esta linha como "Hardcoded Secret".
+# Carrega variaveis do arquivo .env (apenas desenvolvimento local).
+# O .env esta no .gitignore e NUNCA deve ser commitado.
+load_dotenv()
+
 app = Flask(__name__)
 
+# ANTES: SECRET_KEY com valor fixo no codigo (achado de SAST/secret scanning).
+# AGORA: lida do ambiente; sem ela a app nao sobe (fail fast).
 _secret_key = os.environ.get("TASKFLOW_SECRET_KEY")
 if not _secret_key:
     raise RuntimeError(
@@ -34,6 +35,11 @@ if not _secret_key:
         "(ex: export TASKFLOW_SECRET_KEY='valor-aleatorio-e-longo')."
     )
 app.config["SECRET_KEY"] = _secret_key
+
+# AGORA: cookie de sessao inacessivel via JavaScript e nao enviado em
+# requisicoes cross-site.
+app.config["SESSION_COOKIE_HTTPONLY"] = True
+app.config["SESSION_COOKIE_SAMESITE"] = "Lax"
 
 DATABASE = "taskflow.db"
 
@@ -75,18 +81,25 @@ def init_db():
     )
     db.commit()
 
+    # ANTES: usuarios criados com senha em texto puro ("admin123") no codigo
+    #        e gravada sem hash no banco.
+    # AGORA: a senha inicial vem do ambiente e e gravada como HASH (com salt).
+    #        Se TASKFLOW_ADMIN_PASSWORD nao existir, nenhum usuario e criado.
+    admin_password = os.environ.get("TASKFLOW_ADMIN_PASSWORD")
     cur = db.execute("SELECT COUNT(*) AS total FROM users")
-    if cur.fetchone()["total"] == 0:
-        # Vulnerabilidade #4: senha em texto puro, sem hashing.
+    if cur.fetchone()["total"] == 0 and admin_password:
         db.execute(
             "INSERT INTO users (username, password) VALUES (?, ?)",
-            ("admin", "admin123"),
-        )
-        db.execute(
-            "INSERT INTO users (username, password) VALUES (?, ?)",
-            ("aluno", "senha123"),
+            ("admin", generate_password_hash(admin_password)),
         )
         db.commit()
+
+
+# ANTES: init_db() so era chamado dentro do bloco __main__.
+# AGORA: roda na importacao do modulo, para funcionar tambem com o gunicorn
+#        (que importa o app e nunca executa o bloco __main__).
+with app.app_context():
+    init_db()
 
 
 @app.route("/")
@@ -100,38 +113,27 @@ def index():
 def login():
     error = None
     if request.method == "POST":
-        username = request.form["username"]
-        password = request.form["password"]
+        username = request.form.get("username", "")
+        password = request.form.get("password", "")
 
-        # Vulnerabilidade #1: SQL Injection.
-        # A query e montada por concatenacao de string em vez de usar
-        # parametros preparados (placeholders "?").
-        query = (
-            "SELECT * FROM users WHERE username = '"
-            + username
-            + "' AND password = '"
-            + password
-            + "'"
-        )
+        # ANTES: "... WHERE username = '" + username + "' AND password = '" ...
+        #        -> SQL Injection (ex.: usuario  admin' --  entrava sem senha).
+        # AGORA: query parametrizada; a senha e conferida pelo hash, fora do SQL.
         db = get_db()
-        cur = db.execute(query)
+        cur = db.execute("SELECT * FROM users WHERE username = ?", (username,))
         user = cur.fetchone()
 
-        if user:
+        if user and check_password_hash(user["password"], password):
+            # Limpa a sessao anterior antes de autenticar (evita fixacao de sessao).
+            session.clear()
             session["user_id"] = user["id"]
             session["username"] = user["username"]
             return redirect(url_for("tasks"))
         error = "Usuario ou senha invalidos."
 
-    return f"""
-    <h1>TaskFlow - Login</h1>
-    <form method="post">
-        Usuario: <input type="text" name="username"><br>
-        Senha: <input type="password" name="password"><br>
-        <input type="submit" value="Entrar">
-    </form>
-    <p style="color:red">{error or ""}</p>
-    """
+    # ANTES: HTML retornado com f-string (Semgrep: directly-returned-format-string).
+    # AGORA: template Jinja2 com autoescape.
+    return render_template("login.html", error=error)
 
 
 @app.route("/logout")
@@ -149,42 +151,26 @@ def tasks():
     db = get_db()
 
     if search:
-        # Vulnerabilidade #1 (variante): SQL Injection tambem na busca.
-        query = (
-            "SELECT * FROM tasks WHERE user_id = "
-            + str(session["user_id"])
-            + " AND title LIKE '%"
-            + search
-            + "%'"
-        )
-        rows = db.execute(query).fetchall()
+        # ANTES: "... AND title LIKE '%" + search + "%'" -> SQL Injection.
+        # AGORA: o padrao do LIKE e montado fora do SQL e passado como parametro.
+        like_pattern = f"%{search}%"
+        rows = db.execute(
+            "SELECT * FROM tasks WHERE user_id = ? AND title LIKE ?",
+            (session["user_id"], like_pattern),
+        ).fetchall()
     else:
         rows = db.execute(
             "SELECT * FROM tasks WHERE user_id = ?", (session["user_id"],)
         ).fetchall()
 
-    items = ""
-    for row in rows:
-        # Vulnerabilidade #2: XSS armazenado. A descricao do usuario e
-        # inserida direto no HTML, sem escaping (Jinja2 com | safe
-        # ou f-string manual como aqui tem o mesmo efeito).
-        items += f"""
-        <li>
-            <b>{row['title']}</b> - {row['description']}
-            {'(feita)' if row['done'] else ''}
-        </li>
-        """
-
-    return f"""
-    <h1>Minhas tarefas ({session['username']})</h1>
-    <form method="get">
-        <input type="text" name="q" placeholder="buscar tarefa">
-        <input type="submit" value="Buscar">
-    </form>
-    <ul>{items}</ul>
-    <a href="{url_for('new_task')}">Nova tarefa</a> |
-    <a href="{url_for('logout')}">Sair</a>
-    """
+    # ANTES: HTML montado com f-string -> XSS armazenado na descricao.
+    # AGORA: template Jinja2 com autoescape ("<script>" vira "&lt;script&gt;").
+    return render_template(
+        "tasks.html",
+        rows=rows,
+        search=search,
+        username=session["username"],
+    )
 
 
 @app.route("/tasks/new", methods=["GET", "POST"])
@@ -193,43 +179,29 @@ def new_task():
         return redirect(url_for("login"))
 
     if request.method == "POST":
-        title = request.form["title"]
-        description = request.form["description"]
-        db = get_db()
-        db.execute(
-            "INSERT INTO tasks (user_id, title, description) VALUES (?, ?, ?)",
-            (session["user_id"], title, description),
-        )
-        db.commit()
+        title = request.form.get("title", "").strip()
+        description = request.form.get("description", "")
+        if title:
+            db = get_db()
+            db.execute(
+                "INSERT INTO tasks (user_id, title, description) VALUES (?, ?, ?)",
+                (session["user_id"], title, description),
+            )
+            db.commit()
         return redirect(url_for("tasks"))
 
-    return """
-    <h1>Nova tarefa</h1>
-    <form method="post">
-        Titulo: <input type="text" name="title"><br>
-        Descricao: <textarea name="description"></textarea><br>
-        <input type="submit" value="Salvar">
-    </form>
-    """
+    return render_template("new_task.html")
 
 
-# Vulnerabilidade #5: endpoint de debug/diagnostico exposto sem
-# autenticacao, vazando informacoes internas do servidor.
-@app.route("/debug/info")
-def debug_info():
-    import platform
-    import sys
-
-    return {
-        "python_version": sys.version,
-        "platform": platform.platform(),
-        "secret_key": app.config["SECRET_KEY"],
-    }
+# ANTES: rota /debug/info publica, retornando versao do Python, plataforma
+#        e a propria SECRET_KEY.
+# AGORA: rota removida.
 
 
 if __name__ == "__main__":
-    with app.app_context():
-        init_db()
-    # debug=True em producao expoe o Werkzeug debugger interativo
-    # (execucao remota de codigo) - tambem sera sinalizado pelo SAST.
-    app.run(host="0.0.0.0", port=5000, debug=True)
+    # ANTES: app.run(host="0.0.0.0", port=5000, debug=True)
+    #        -> debugger do Werkzeug (execucao remota de codigo) exposto na rede.
+    # AGORA: servidor de desenvolvimento so na maquina local, sem debug.
+    #        Porta 5001 para evitar conflito com o AirPlay do macOS (porta 5000).
+    #        Em producao/container a app roda com gunicorn (ver Dockerfile).
+    app.run(host="127.0.0.1", port=5001)
