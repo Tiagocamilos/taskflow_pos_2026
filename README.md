@@ -261,7 +261,7 @@ TODO — preencher após o PR de demonstração:
 2. O job **SAST - Semgrep** fica vermelho e o merge é bloqueado (link do run).
 3. Commit de correção no mesmo PR → todos os checks verdes → merge liberado.
 
-# Relatório de Implementação e Hardening - Projeto TaskFlow (Atividade 1)
+# Relatório de Implementação e Hardening
 
 ## Resumo Executivo das Ações Realizadas
 
