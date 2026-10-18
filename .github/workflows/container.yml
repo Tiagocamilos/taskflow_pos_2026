@@ -52,10 +52,10 @@ jobs:
           format: table
 
       # Smoke test com flags de runtime seguras:
-      #   --read-only                      -> filesystem da imagem imutavel
-      #   --tmpfs /tmp                     -> area temporaria em memoria (gunicorn usa)
-      #   -v taskflow-data:/app/data       -> unica pasta gravavel (banco SQLite)
-      #   --cap-drop ALL                   -> remove todas as capabilities do kernel
+      #   --read-only                 -> filesystem da imagem imutavel
+      #   --tmpfs /tmp                -> area temporaria em memoria (gunicorn usa)
+      #   -v taskflow-data:/app/data   -> unica pasta gravavel (banco SQLite)
+      #   --cap-drop ALL              -> remove todas as capabilities do kernel
       #   --security-opt no-new-privileges -> bloqueia escalada de privilegio (setuid)
       # SECRET_KEY gerada na hora (aleatoria e descartavel) -> nada hardcoded.
       - name: Smoke test do container (flags de runtime seguras)
@@ -75,3 +75,36 @@ jobs:
       - name: Logs do container (se falhar)
         if: failure()
         run: docker logs taskflow || true
+
+
+# =============================================================================
+# RESUMO DAS MUDANÇAS E BOAS PRÁTICAS APLICADAS NO CONTAINER.YML
+# =============================================================================
+
+# Permissões do GITHUB_TOKEN (permissions: contents: read)
+# - O que mudou: Restrição de permissões globais do job para apenas leitura.
+# - Por quê: Aplica o princípio do mínimo privilégio para barrar qualquer tipo de alteração no repositório por meio do pipeline.
+
+# Variáveis centralizadas no topo (env)
+# - O que mudou: Definição de parâmetros globais (IMAGE_NAME, APP_PORT, TRIVY_SEVERITY, DOCKERFILE_PATH).
+# - Por quê: Facilita a manutenção, evita ter valores "magic string" ou hardcoded espalhados nos passos e simplifica atualizações futuras.
+
+# Fixação por SHA dos commits nas Actions (actions/checkout e aquasecurity/trivy-action)
+# - O que mudou: Substituição de tags mutáveis (@v4, @v0.36.0) por hashes imutáveis.
+# - Por quê: Proteção ativa contra contaminação de pipeline via Supply Chain Attacks (impedindo que a ação execute código malicioso caso a tag oficial seja alterada).
+
+# Scan de vulnerabilidades de Container com Trivy (Quality Gate)
+# - O que mudou: Inclusão da action do Trivy bloqueando a esteira com exit-code: "1" em caso de vulnerabilidades HIGH ou CRITICAL.
+# - Por quê: Garante um Quality Gate que impede imagens vulneráveis de serem aceitas ou implantadas. O uso de ignore-unfixed: true foca a correção nas falhas que já possuem patch disponível.
+
+# Smoke Test com Hardening de Runtime no Docker
+# - O que mudou: Validação pós-build rodando o container com --read-only, --tmpfs /tmp, --cap-drop ALL e --security-opt no-new-privileges.
+# - Por quê: Assegura que a aplicação funciona perfeitamente sob os controles de runtime restritivos do Docker, além de validar a inicialização real do app em /login via HTTP.
+
+# Injeção dinâmica da SECRET_KEY via openssl
+# - O que mudou: Geração aleatória da variável TASKFLOW_SECRET_KEY em tempo de execução no comando docker run.
+# - Por quê: Evita o vazamento de segredos no código e atende aos requisitos de não utilizar chaves estáticas ou hardcoded.
+
+# Captura de Logs sob falha (if: failure())
+# - O que mudou: Execução condicional do comando docker logs taskflow.
+# - Por quê: Agiliza o processo de troubleshooting e debugging em caso de quebra durante a execução do container ou no teste HTTP.
