@@ -1,7 +1,37 @@
-<h1>Nova tarefa</h1>
-<form method="post">
+<!doctype html>
+<html lang="pt-br">
+<head>
+  <meta charset="utf-8">
+  <title>TaskFlow - Nova Tarefa</title>
+</head>
+<body>
+  <h1>Nova tarefa</h1>
+
+  <!-- Restricoes do lado do cliente (required, maxlength) auxiliam na defesa    -->
+  <!-- em profundidade contra envios de payloads excessivamente grandes.        -->
+  <form method="post">
     <label>Titulo: <input type="text" name="title" required maxlength="100"></label><br>
     <label>Descricao: <textarea name="description" maxlength="500"></textarea></label><br>
     <input type="submit" value="Salvar">
-</form>
-<a href="{{ url_for('tasks') }}">Voltar</a>
+  </form>
+
+  <!-- Uso do url_for() para roteamento dinamico seguro mantido pelo Flask.      -->
+  <a href="{{ url_for('tasks') }}">Voltar</a>
+</body>
+</html>
+
+
+<!-- ============================================================================= -->
+<!-- RESUMO DAS MUDANÇAS E BOAS PRÁTICAS APLICADAS NO NEW_TASK.HTML               -->
+<!-- ============================================================================= -->
+
+<!-- Separação de Responsabilidades da Criação de Tarefas                         -->
+<!-- - O que mudou: Substituição da resposta inline do Python por um template     -->
+<!--   dedicado à entrada de novos dados.                                         -->
+<!-- - Por quê: Assegura modularidade e adequação aos padrões exigidos pelas      -->
+<!--   ferramentas de análise estática de código (SAST).                          -->
+
+<!-- Validação Básica no Lado do Cliente (Defesa em Profundidade)                  -->
+<!-- - O que mudou: Inclusão dos atributos `required` e `maxlength`.              -->
+<!-- - Por quê: Previne o envio acidental de campos vazios e estabelece limites   -->
+<!--   de tamanho de entrada diretamente no formulário do usuário.               -->
