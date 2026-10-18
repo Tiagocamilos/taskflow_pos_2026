@@ -25,6 +25,7 @@ permissions:
 
 # AGORA: versoes centralizadas (antes: "pip install semgrep" sem versao -> build
 #        nao reprodutivel, cada execucao podia usar um Semgrep diferente).
+# Ao atualizar, conferir a versao mais recente em https://pypi.org/project/semgrep/
 env:
   PYTHON_VERSION: "3.12"
   SEMGREP_VERSION: "1.90.0"
@@ -43,8 +44,11 @@ jobs:
         with:
           python-version: ${{ env.PYTHON_VERSION }}
 
+      # setuptools<81: versoes novas removeram o pkg_resources, que ainda e
+      # importado por uma dependencia do Semgrep (opentelemetry). Sem essa
+      # restricao o Semgrep quebra antes de escanear (ModuleNotFoundError).
       - name: Instalar Semgrep
-        run: pip install "semgrep==${{ env.SEMGREP_VERSION }}"
+        run: pip install "semgrep==${{ env.SEMGREP_VERSION }}" "setuptools<81"
 
       # Rulesets exigidos pela atividade: python, flask e security-audit.
       # --error  -> exit code != 0 se houver achado (e isso que torna o job um GATE).
@@ -71,8 +75,8 @@ jobs:
         with:
           fetch-depth: 0
 
-      # O Gitleaks le automaticamente o .gitleaks.toml da raiz (allowlist justificada
-      # dos segredos didaticos da linha de base).
+      # O Gitleaks le automaticamente o .gitleaks.toml da raiz, se existir
+      # (allowlist justificada para segredos didaticos ou de demonstracao).
       - name: Rodar Gitleaks
         uses: gitleaks/gitleaks-action@ff98106e4c7b2bc287b24eaf42907196329070c7 # v2.3.9
         env:
