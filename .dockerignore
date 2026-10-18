@@ -1,0 +1,9 @@
+.git
+.github
+.env
+*.db
+codigo
+checklist.md
+README.md
+__pycache__
+*.pyc
