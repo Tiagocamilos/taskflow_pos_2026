@@ -29,8 +29,13 @@ WORKDIR /app
 
 # CORRIGIDO (FALHA 2): usuario e grupo dedicados, sem privilegios de root.
 # So a pasta data/ (banco SQLite) e gravavel por ele.
-RUN groupadd --system taskflow && \
-    useradd --system --gid taskflow --no-create-home --shell /usr/sbin/nologin taskflow && \
+#RUN groupadd --system taskflow && \
+#    useradd --system --gid taskflow --no-create-home --shell /usr/sbin/nologin taskflow && \
+#    mkdir -p /app/data && \
+#    chown taskflow:taskflow /app/data
+
+RUN addgroup -S taskflow && \
+    adduser -S -G taskflow -H -s /sbin/nologin taskflow && \
     mkdir -p /app/data && \
     chown taskflow:taskflow /app/data
 
