@@ -83,7 +83,7 @@ uma a uma, validando o SSH com `sshd -t` antes de reiniciar o serviço.
 
 | Depois |
 
-<img width="1186" height="494" alt="image" src="https://github.com/user-attachments/assets/5bea9267-33db-442e-bbab-6d5d410eeb21" />
+<img width="1154" height="843" alt="image" src="https://github.com/user-attachments/assets/17d07810-880d-4bfd-953b-9d617ff97e44" />
 
 
 
