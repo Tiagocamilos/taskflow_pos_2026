@@ -77,7 +77,11 @@ sudo lynis audit system
 O Lynis é ferramenta de diagnóstico: as correções foram aplicadas manualmente,
 uma a uma, validando o SSH com `sshd -t` antes de reiniciar o serviço.
 
+| Antes |
+
 <img width="1149" height="289" alt="image" src="https://github.com/user-attachments/assets/434a21a8-72c2-4c71-9025-7061fe5b789b" />
+
+| Depois |
 
 <img width="1186" height="494" alt="image" src="https://github.com/user-attachments/assets/5bea9267-33db-442e-bbab-6d5d410eeb21" />
 
