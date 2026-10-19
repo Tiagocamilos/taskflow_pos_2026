@@ -79,6 +79,9 @@ uma a uma, validando o SSH com `sshd -t` antes de reiniciar o serviço.
 
 <img width="1149" height="289" alt="image" src="https://github.com/user-attachments/assets/434a21a8-72c2-4c71-9025-7061fe5b789b" />
 
+<img width="1186" height="494" alt="image" src="https://github.com/user-attachments/assets/5bea9267-33db-442e-bbab-6d5d410eeb21" />
+
+
 
 # Relatório de Implementação e Hardening - Projeto TaskFlow (Atividade 1)
 
