@@ -9,7 +9,6 @@ Atividade 1 da disciplina DevSecOps (Aulas 1, 2 e 3);
 ## Grupo
 ```text
 | Membro | GitHub | 
-|---|---|---|
 | Tiago Camilo | @Tiagocamilos | 
 | Danilo Huberto| @dhuberto | 
 | Eric Malone | @emcsmalone |
