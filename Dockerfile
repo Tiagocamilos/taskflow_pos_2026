@@ -3,7 +3,8 @@
 # CORRIGIDO (FALHA 1): tag fixada e imagem slim (menos pacotes de SO,
 # menos CVEs), em vez de "latest". Build multi-stage: o estagio final
 # nao carrega cache nem ferramentas de instalacao.
-FROM python:3.12-slim AS build
+#FROM python:3.12-slim AS build
+FROM python:3.12-alpine AS build
 
 WORKDIR /app
 
@@ -13,7 +14,8 @@ COPY requirements.txt .
 # pip-audit no sca.yml) e --no-cache-dir para nao deixar cache na camada.
 RUN pip install --no-cache-dir -r requirements.txt
 
-FROM python:3.12-slim AS runtime
+#FROM python:3.12-slim AS runtime
+FROM python:3.12-alpine AS runtime
 
 # Banco aponta para /app/data: unica pasta gravavel (volume no docker run).
 ENV PYTHONDONTWRITEBYTECODE=1 \
