@@ -51,7 +51,9 @@ docker run -p 5000:5000 --read-only --tmpfs /tmp -v taskflow-data:/app/data \
 Filesystem imutável, sem capabilities do kernel, sem escalada de privilégio,
 segredos só em runtime. Validado no smoke test do `container.yml`.
 
-## 5. Lynis
+## 5. Hardening de SO - Lynis
+
+Auditoria da VM Ubuntu do grupo antes e depois do hardening.
 
 ```bash
 sudo lynis audit system
@@ -59,12 +61,21 @@ sudo lynis audit system
 
 | | Antes | Depois |
 |---|---|---|
-| Hardening index | TODO | TODO |
+| Hardening index | 61 | 68 |
+| Warnings | 2 | 1 |
+| Suggestions | 46 | 41 |
 
-| Achado | Tratamento |
-|---|---|
-| TODO | TODO |
-| TODO | TODO |
+### Correções aplicadas
+
+| Teste | Achado | Tratamento |
+|---|---|---|
+| FIRE-4512 (warning) | Módulos do iptables carregados, sem regras ativas | **Corrigido:** `ufw` ativado, liberando apenas OpenSSH |
+| SSH-7408 | Diretivas do SSH com valores inseguros | **Corrigido:** `/etc/ssh/sshd_config.d/99-hardening.conf` (baseado no `sshd_config.hardened` da Aula 3): sem login de root, `MaxAuthTries 3`, sem forwarding de X11, agente e TCP, timeout de sessão, `LogLevel VERBOSE` |
+| KRNL-6000 | Parâmetros de kernel e rede fora do recomendado | **Corrigido:** `/etc/sysctl.d/99-hardening.conf` (sem ICMP redirects, log de pacotes suspeitos, `kptr_restrict`, `dmesg_restrict`, sem core dump de binários SUID) |
+| PKGS-7388 (warning) | Repositório de segurança não encontrado | **Falso positivo:** o Ubuntu 24.04 declara os repositórios em `/etc/apt/sources.list.d/ubuntu.sources` (formato deb822), que esta versão do Lynis não lê. O repositório `security.ubuntu.com` está configurado e `apt-get upgrade` não tem pendências. |
+
+O Lynis é ferramenta de diagnóstico: as correções foram aplicadas manualmente,
+uma a uma, validando o SSH com `sshd -t` antes de reiniciar o serviço.
 
 <img width="1149" height="289" alt="image" src="https://github.com/user-attachments/assets/434a21a8-72c2-4c71-9025-7061fe5b789b" />
 
