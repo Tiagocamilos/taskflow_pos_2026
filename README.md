@@ -7,7 +7,7 @@ scanning, SCA e scan de imagem**; se qualquer gate falhar, o merge é bloqueado.
 Atividade 1 da disciplina DevSecOps (Aulas 1, 2 e 3);
 
 ## Grupo
-
+```text
 | Membro | GitHub | 
 |---|---|---|
 | Tiago Camilo | @Tiagocamilos | 
@@ -15,7 +15,7 @@ Atividade 1 da disciplina DevSecOps (Aulas 1, 2 e 3);
 | Eric Malone | @emcsmalone |
 | Helierison Cardoso | @helierison | 
 | Everton Genuino | @tongenx | 
-
+```
 ---
 
 ## Sumário
