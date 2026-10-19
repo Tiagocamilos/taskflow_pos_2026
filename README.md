@@ -1,4 +1,4 @@
-# TaskFlow DevSecOps — Esteira Segura
+# TaskFlow DevSecOps — Esteira Segura.
 
 Aplicação TaskFlow (Flask) protegida por uma esteira de CI segura no GitHub
 Actions. Todo Pull Request para a `main` passa por **build/lint, SAST, secret
