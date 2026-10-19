@@ -66,6 +66,9 @@ sudo lynis audit system
 | TODO | TODO |
 | TODO | TODO |
 
+<img width="1149" height="289" alt="image" src="https://github.com/user-attachments/assets/434a21a8-72c2-4c71-9025-7061fe5b789b" />
+
+
 # Relatório de Implementação e Hardening - Projeto TaskFlow (Atividade 1)
 
 ## Resumo Executivo das Ações Realizadas
