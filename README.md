@@ -248,6 +248,25 @@ As seis falhas do Dockerfile original foram corrigidas. Detalhes, Trivy e
 - **Pasta `codigo/` excluída do Semgrep**: contém o material de referência da
   disciplina, com exemplos vulneráveis de propósito.
 
+### 8.1. Auditoria de Conformidade, Hardening e Gestão de Riscos
+
+As evidências e os relatórios comparativos detalhados de auditoria estão documentados em [`docs/hardening.md`](docs/hardening.md):
+
+- **Hardening de SO (Auditoria Lynis):**
+  - **Evolução do Índice:** O índice geral de hardening do host Ubuntu 24.04 subiu de **61 para 68**, reduzindo avisos e sugestões pendentes (`docs/hardening.md`).
+  - **Correções Aplicadas:** Ativação do firewall `ufw` restrito a portas estritamente necessárias (OpenSSH); blindagem do daemon SSH (`/etc/ssh/sshd_config.d/99-hardening.conf`) desabilitando login de root e túneis desnecessários; e parâmetros de kernel e rede seguros via sysctl (`/etc/sysctl.d/99-hardening.conf` contra ICMP redirects e restringindo buffers de depuração/dmesg).
+  - **Tratamento de Falso Positivo (PKGS-7388):** O Lynis gerou um aviso alegando falta de repositórios de segurança, decorrente da versão do scanner não interpretar nativamente o formato deb822 (`/etc/apt/sources.list.d/ubuntu.sources`) adotado pelo Ubuntu 24.04. O achado foi analisado, validado como falso positivo e devidamente justificado, mantendo os patches do `security.ubuntu.com` 100% aplicados.
+
+- **Hardening de Container e CVEs (Trivy & docker history):**
+  - **Eliminação de CVEs Críticas:** A migração da imagem base legada (`python:latest`) para a imagem enxuta e fixada (`python:3.12-slim` em build multi-stage) zerou integralmente as vulnerabilidades da imagem: **368 HIGH → 0** e **20 CRITICAL → 0**.
+  - **Zero Segredos em Camadas:** Conforme auditado via `docker history --no-trunc`, o segredo que antes residia na camada de build (`ENV ADMIN_PASSWORD=admin123`) foi expurgado; credenciais agora só existem em runtime.
+  - **Isolamento de Execução:** O container opera sob o princípio do menor privilégio, rodando como usuário não-root (`USER taskflow`), com sistema de arquivos somente leitura (`--read-only`), sem capabilities do kernel (`--cap-drop ALL`) e bloqueando escalonamento de privilégio (`--security-opt no-new-privileges`).
+
+- **Histórico Git e Linha de Base Didática:**
+  - Nenhuma credencial real de produção ou do grupo foi commitada.
+  - As credenciais didáticas originais da aplicação (`s3gr3d0-super-secreto-nao-mude-nunca` e `admin123`) foram expurgadas do código ativo e migradas para injeção via `.env` (ignorado pelo Git).
+  - O pipeline executa `gitleaks` com varredura completa do histórico (`fetch-depth: 0`) e **não houve uso de supressões artificiais** (`--exit-zero`, `# nosemgrep` ou `continue-on-error: true`), mantendo gates 100% bloqueantes.
+
 Supressões (`# nosemgrep`, `--exit-zero`, `continue-on-error`): **nenhuma**.
 
 ---
