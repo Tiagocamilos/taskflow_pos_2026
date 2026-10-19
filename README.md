@@ -4,7 +4,7 @@ Aplicação TaskFlow (Flask) protegida por uma esteira de CI segura no GitHub
 Actions. Todo Pull Request para a `main` passa por **build/lint, SAST, secret
 scanning, SCA e scan de imagem**; se qualquer gate falhar, o merge é bloqueado.
 
-Atividade 1 da disciplina DevSecOps (Aulas 1, 2 e 3);
+Atividade 1 da disciplina DevSecOps (Aulas 1, 2 e 3).
 
 ## Grupo
 
