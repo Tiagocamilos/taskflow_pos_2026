@@ -23,8 +23,8 @@ docker build -t taskflow:hardened .            && trivy image --severity HIGH,CR
 
 | | Antes | Depois |
 |---|---|---|
-| CVEs HIGH | TODO | 0 |
-| CVEs CRITICAL | TODO | 0 |
+| CVEs HIGH | 368 | 0 |
+| CVEs CRITICAL | 20 | 0 |
 
 O gate no CI usa `ignore-unfixed`: CVE sem correção publicada não bloqueia
 (não há versão para atualizar) e, se aparecer, é registrada aqui como risco
