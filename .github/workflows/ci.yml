@@ -35,7 +35,7 @@ jobs:
       # AGORA: pin pelo SHA do commit (imutavel). O comentario indica a versao
       #         e permite que o Dependabot atualize o pin.
       - name: Checkout do codigo
-        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       # ANTES: actions/setup-python@v5 (tag mutavel).
       # AGORA: pin por SHA + cache do pip para acelerar as execucoes.
