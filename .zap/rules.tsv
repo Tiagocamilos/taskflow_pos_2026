@@ -1,0 +1,11 @@
+# ==============================================================================
+# ARQUIVO: .zap/rules.tsv
+# DESCRIÇÃO: Tabela de regras do OWASP ZAP rebaixadas com justificativas
+# ==============================================================================
+# 10020	WARN	(X-Frame-Options Header Not Set - Aceito temporariamente no ambiente de dev)
+# 10038	WARN	(User Controllable Charset - Baixo risco para o escopo do laboratório)
+# 10096	IGNORE	(Timestamp Disclosure - Informação de horário pública não crítica)
+# 10021	IGNORE	(X-Content-Type-Options Header Missing - Mitigado na camada de proxy)
+# ==============================================================================
+# RESUMO: Todas as regras alteradas possuem justificativa de risco/mitigação.
+# ==============================================================================
