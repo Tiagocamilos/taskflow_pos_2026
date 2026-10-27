@@ -1,0 +1,49 @@
+# ==============================================================================
+# ARQUIVO: docker-compose.yml (Raiz)
+# DESCRIÇÃO: Stack de Observabilidade Local (Grafana + Loki + Promtail)
+# ==============================================================================
+
+networks:
+  observabilidade:
+    driver: bridge
+
+services:
+  # Banco de Dados de Logs
+  loki:
+    image: grafana/loki:2.9.6
+    container_name: taskflow-loki
+    ports:
+      - "3100:3100"
+    command: -config.file=/etc/loki/local-config.yaml
+    networks:
+      - observabilidade
+
+  # Agente Coletor de Logs
+  promtail:
+    image: grafana/promtail:2.9.6
+    container_name: taskflow-promtail
+    volumes:
+      - ./logs:/var/log/taskflow:ro
+      - ./promtail-config.yml:/etc/promtail/config.yml:ro
+    command: -config.file=/etc/promtail/config.yml
+    depends_on:
+      - loki
+    networks:
+      - observabilidade
+
+  # Interface de Visualização e Dashboards
+  grafana:
+    image: grafana/grafana:10.4.2
+    container_name: taskflow-grafana
+    ports:
+      - "3000:3000"
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+      - GF_SECURITY_ADMIN_PASSWORD_CHANGE_DISABLED=true
+    volumes:
+      - ./grafana-provisioning/datasources:/etc/grafana/provisioning/datasources:ro
+    depends_on:
+      - loki
+    networks:
+      - observabilidade
