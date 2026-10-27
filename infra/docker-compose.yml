@@ -1,0 +1,84 @@
+# ==============================================================================
+# ARQUIVO: infra/docker-compose.yml
+# DESCRIÇÃO: Orquestração segura multi-serviço (Web TaskFlow + PostgreSQL)
+# ==============================================================================
+
+networks:
+  frontend:
+    driver: bridge
+  backend:
+    driver: bridge
+
+volumes:
+  taskflow_db_data:
+
+services:
+  # Banco de Dados PostgreSQL (Infraestrutura)
+  db:
+    image: postgres:15-alpine
+    container_name: taskflow-db
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-taskflow_user}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-taskflow_pass_secure}
+      POSTGRES_DB: ${POSTGRES_DB:-taskflow_db}
+    networks:
+      - backend
+    volumes:
+      - taskflow_db_data:/var/lib/postgresql/data
+    deploy:
+      resources:
+        limits:
+          cpus: '0.50'
+          memory: 256M
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-taskflow_user} -d ${POSTGRES_DB:-taskflow_db}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    security_opt:
+      - no-new-privileges:true
+
+  # Serviço Web TaskFlow
+  web:
+    build:
+      context: ..
+      dockerfile: Dockerfile
+    image: taskflow:compose-secure
+    container_name: taskflow-web
+    ports:
+      - "5000:5000"
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-taskflow_user}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-taskflow_pass_secure}
+      POSTGRES_DB: ${POSTGRES_DB:-taskflow_db}
+      DATABASE_URL: postgresql://${POSTGRES_USER:-taskflow_user}:${POSTGRES_PASSWORD:-taskflow_pass_secure}@db:5432/${POSTGRES_DB:-taskflow_db}
+      TASKFLOW_SECRET_KEY: ${TASKFLOW_SECRET_KEY:-desenvolvimento-chave-temporaria-devsecops}
+      TASKFLOW_ADMIN_PASSWORD: ${TASKFLOW_ADMIN_PASSWORD:-admin123}
+      FLASK_DEBUG: "0"
+      TMPDIR: /tmp
+    networks:
+      - frontend
+      - backend
+    read_only: true
+    tmpfs:
+      - /tmp
+      - /run
+      - /app/.gunicorn
+    volumes:
+      - ../logs:/app/logs
+    deploy:
+      resources:
+        limits:
+          cpus: '0.50'
+          memory: 256M
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5000/login"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    depends_on:
+      db:
+        condition: service_healthy
+    security_opt:
+      - no-new-privileges:true
