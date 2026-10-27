@@ -1,0 +1,49 @@
+# ==============================================================================
+# ARQUIVO: .github/workflows/iac-scan.yml
+# DESCRIÇÃO: Gate de segurança em IaC utilizando Checkov e Trivy Config
+# ==============================================================================
+name: IaC Security Scan
+
+on:
+  push:
+    paths:
+      - 'docker-compose.yml'
+      - 'infra/**'
+      - '.github/workflows/iac-scan.yml'
+  pull_request:
+    paths:
+      - 'docker-compose.yml'
+      - 'infra/**'
+      - '.github/workflows/iac-scan.yml'
+
+jobs:
+  iac_scan:
+    name: Checkov & Trivy IaC Gate
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      # BLOCO 1: Checkov Scan
+      - name: Run Checkov
+        uses: bridgecrewio/checkov-action@master
+        with:
+          framework: terraform,dockerfile,compose
+          output_format: cli
+          soft_fail: false # Funciona como GATE: falha o pipeline em caso de violação
+
+      # BLOCO 2: Trivy Config Scan
+      - name: Run Trivy Config Scan
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: 'config'
+          hide-progress: false
+          format: 'table'
+          exit-code: '1' # Bloqueia o merge se encontrar achados HIGH/CRITICAL
+          severity: 'HIGH,CRITICAL'
+
+# ==============================================================================
+# RESUMO: Workflow atua como gate síncrono para alterações em arquivos de IaC,
+# bloqueando PRs que apresentem configurações inseguras sem justificativa.
+# ==============================================================================v
