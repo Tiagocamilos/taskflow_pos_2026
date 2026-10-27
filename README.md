@@ -34,24 +34,42 @@ Atividade 1 da disciplina DevSecOps (Aulas 1, 2 e 3);
 ## 1. Estrutura do repositório
 
 ```text
-.
-├── app.py                    # Aplicação Flask (versão corrigida)
-├── templates/                # Templates Jinja2 (autoescape contra XSS)
-├── requirements.txt          # Dependências com versão fixada
-├── Dockerfile                # Imagem hardened (multi-stage, não-root, gunicorn)
-├── .dockerignore             # Impede .env, .git e banco local na imagem
-├── .env.example              # Modelo das variáveis de ambiente (sem valores)
-├── docs/
-│   └── hardening.md          # Trivy, docker history e Lynis: antes × depois
-├── codigo/                   # Material de referência da disciplina (fora dos scans)
-└── .github/
-    ├── CODEOWNERS            # Quem revisa cada parte do código
-    ├── dependabot.yml        # Atualização automática de pip e GitHub Actions
-    └── workflows/
-        ├── ci.yml            # Build + lint (ruff)
-        ├── sast.yml          # Semgrep + Gitleaks
-        ├── sca.yml           # pip-audit
-        └── container.yml     # Build da imagem + Trivy + smoke test
+devsecops/
+├── .dockerignore                          # Define arquivos e pastas ignorados no contexto de build do Docker.
+├── .env.example                           # Modelo de variáveis de ambiente documentado sem segredos reais.
+├── .gitignore                             # Impede o commit de arquivos sensíveis, temporários ou do ambiente local.
+├── .github/                               # Diretório de configurações e automações da plataforma GitHub.
+│   ├── dependabot.yml                     # Configuração para monitoramento e atualização automática de dependências.
+│   └── workflows/                         # Pipelines de CI/CD executadas via GitHub Actions.
+│       ├── ci.yml                         # Gate de CI para análise estática de qualidade e linting (Ruff).
+│       ├── container.yml                  # Build da imagem, varredura de vulnerabilidades (Trivy) e smoke test.
+│       ├── dast.yml                       # Pipeline de análise dinâmica de segurança usando OWASP ZAP Baseline.
+│       ├── iac-scan.yml                   # Varredura de segurança em arquivos Terraform e Docker Compose (Checkov/Trivy).
+│       ├── sast.yml                       # Análise estática de código (Semgrep) e varredura de segredos (Gitleaks).
+│       └── sca.yml                        # Auditoria de vulnerabilidades em bibliotecas Python (pip-audit).
+├── .zap/
+│   └── rules.tsv                          # Tabela de regras e tratamentos de alertas do OWASP ZAP.
+├── app.py                                 # Código da aplicação Flask (TaskFlow) instrumentado com logs estruturados.
+├── Dockerfile                             # Script multi-stage build com usuário não-root para geração da imagem segura.
+├── docker-compose.yml                     # Orquestração local da stack de observabilidade (Grafana + Loki + Promtail).
+├── promtail-config.yml                    # Regras de coleta e envio de logs JSON para o banco Loki.
+├── requirements.txt                       # Lista de dependências Python com versões auditadas sem CVEs.
+├── README.md                              # Documentação principal com instruções de execução e arquitetura.
+├── infra/                                 # Manifestos de Infraestrutura como Código (IaC).
+│   ├── docker-compose.yml                 # Orquestração multi-container da app web com banco PostgreSQL isolado.
+│   └── main.tf                            # Manifesto Terraform (HCL) com configurações de segurança da AWS.
+├── grafana-provisioning/
+│   └── datasources/
+│       └── loki.yml                       # Provisionamento automático da fonte de dados Loki no Grafana.
+├── templates/                             # Templates HTML/Jinja2 com autoescape ativado.
+│   ├── login.html                         # Interface de autenticação tratada contra injeções refletidas.
+│   ├── new_task.html                      # Formulário para cadastro de tarefas.
+│   └── tasks.html                         # Painel de tarefas protegido contra XSS armazenado.
+├── docs/                                  # Relatórios técnicos e documentações da atividade.
+│   ├── dast.md                            # Relatório do scan dinâmico ZAP (Antes x Depois) e OWASP Top 10.
+│   ├── observabilidade.md                 # Documentação de consultas LogQL no Grafana (ex: falhas de login).
+│   └── runbook-login-bruteforce.md        # Plano de resposta a incidentes de força bruta baseado no NIST SP 800-61.
+└── codigo/                                # Acervo didático com exemplos de código e evoluções dos módulos.
 ```
 
 ---
