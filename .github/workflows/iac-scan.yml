@@ -1,49 +1,94 @@
-# ==============================================================================
-# ARQUIVO: .github/workflows/iac-scan.yml
-# DESCRIÇÃO: Gate de segurança em IaC utilizando Checkov e Trivy Config
-# ==============================================================================
+# =============================================================================
+# IaC Security Scan - Modulo 5
+#
+# Gates de seguranca para a infraestrutura como codigo:
+#   1. Terraform: fmt -check + validate          (infra/main.tf)
+#   2. Checkov (Terraform)                       -> falha com qualquer achado
+#   3. Trivy config (HIGH/CRITICAL)              -> falha com qualquer achado
+#   4. Docker Compose: validacao de sintaxe e de variaveis obrigatorias
+#
+# Supressoes: apenas "checkov:skip" / "trivy:ignore" inline no main.tf, cada
+# uma com justificativa na propria linha (Rubricas Gerais, secao 2.d).
+#
+# SEM filtro "paths:": este check e obrigatorio na main. Com "paths:", PRs que
+# nao mexem em infra ficariam travados esperando um check que nunca roda.
+# O scan leva ~1 min, entao rodar sempre e o custo aceito por essa garantia.
+# =============================================================================
+
 name: IaC Security Scan
 
 on:
-  push:
-    paths:
-      - 'docker-compose.yml'
-      - 'infra/**'
-      - '.github/workflows/iac-scan.yml'
   pull_request:
-    paths:
-      - 'docker-compose.yml'
-      - 'infra/**'
-      - '.github/workflows/iac-scan.yml'
+    branches: [main]
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  TF_DIR: infra
+  TERRAFORM_VERSION: "1.9.8"
+  SEVERITY: HIGH,CRITICAL
+  # Pastas fora do escopo: material de referencia das aulas (inseguro de
+  # proposito) e cache local do Terraform.
+  TRIVY_SKIP_DIRS: codigo,infra/.terraform
 
 jobs:
-  iac_scan:
-    name: Checkov & Trivy IaC Gate
+  iac-scan:
+    name: IaC - Terraform, Checkov, Trivy e Compose
     runs-on: ubuntu-latest
-    
+    timeout-minutes: 15
     steps:
-      - name: Checkout Code
-        uses: actions/checkout@v4
+      - name: Checkout do codigo
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
 
-      # BLOCO 1: Checkov Scan
-      - name: Run Checkov
-        uses: bridgecrewio/checkov-action@master
+      - name: Instalar Terraform
+        uses: hashicorp/setup-terraform@dfe3c3f87815947d99a8997f908cb6525fc44e9e # v4.0.1
         with:
-          framework: terraform,dockerfile,compose
+          terraform_version: ${{ env.TERRAFORM_VERSION }}
+
+      - name: Terraform fmt (formatacao)
+        working-directory: ${{ env.TF_DIR }}
+        run: terraform fmt -check -recursive
+
+      - name: Terraform init (sem backend, sem credenciais)
+        working-directory: ${{ env.TF_DIR }}
+        run: terraform init -backend=false -input=false
+
+      - name: Terraform validate
+        working-directory: ${{ env.TF_DIR }}
+        run: terraform validate
+
+      - name: Checkov (gate - Terraform)
+        uses: bridgecrewio/checkov-action@c3e106d5f8f4253a6de5110efb41a080f83db294 # v12.3135.0
+        with:
+          directory: ${{ env.TF_DIR }}
+          framework: terraform
           output_format: cli
-          soft_fail: false # Funciona como GATE: falha o pipeline em caso de violação
+          soft_fail: false
 
-      # BLOCO 2: Trivy Config Scan
-      - name: Run Trivy Config Scan
-        uses: aquasecurity/trivy-action@master
+      - name: Trivy config (gate - ${{ env.SEVERITY }})
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
         with:
-          scan-type: 'config'
-          hide-progress: false
-          format: 'table'
-          exit-code: '1' # Bloqueia o merge se encontrar achados HIGH/CRITICAL
-          severity: 'HIGH,CRITICAL'
+          scan-type: config
+          scan-ref: .
+          skip-dirs: ${{ env.TRIVY_SKIP_DIRS }}
+          severity: ${{ env.SEVERITY }}
+          exit-code: "1"
+          format: table
 
-# ==============================================================================
-# RESUMO: Workflow atua como gate síncrono para alterações em arquivos de IaC,
-# bloqueando PRs que apresentem configurações inseguras sem justificativa.
-# ==============================================================================v
+      # O Compose exige as variaveis via ":?" (sem valor padrao no arquivo).
+      # No CI geramos valores aleatorios descartaveis so para validar a sintaxe.
+      - name: Validar Docker Compose (app e observabilidade)
+        run: |
+          for v in TASKFLOW_SECRET_KEY TASKFLOW_ADMIN_PASSWORD POSTGRES_PASSWORD GRAFANA_ADMIN_PASSWORD; do
+            val="$(openssl rand -hex 16)"
+            echo "::add-mask::$val"
+            export "$v=$val"
+          done
+          export POSTGRES_USER=ci POSTGRES_DB=ci
+          docker compose -f infra/docker-compose.yml config -q
+          docker compose -f docker-compose.yml config -q
+          echo "Compose valido."
