@@ -12,8 +12,7 @@ services:
   loki:
     image: grafana/loki:2.9.6
     container_name: taskflow-loki
-    ports:
-      - "3100:3100"
+    # SEM "ports:": so Promtail e Grafana acessam o Loki pela rede interna.
     command: -config.file=/etc/loki/local-config.yaml
     networks:
       - observabilidade
@@ -39,8 +38,7 @@ services:
       - "3000:3000"
     environment:
       - GF_SECURITY_ADMIN_USER=admin
-      - GF_SECURITY_ADMIN_PASSWORD=admin
-      - GF_SECURITY_ADMIN_PASSWORD_CHANGE_DISABLED=true
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_ADMIN_PASSWORD:?defina no .env}
     volumes:
       - ./grafana-provisioning/datasources:/etc/grafana/provisioning/datasources:ro
     depends_on:
