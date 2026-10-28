@@ -20,3 +20,4 @@ taskflow.db
 # - Por quê: Mantém o repositório Git limpo, focado exclusivamente no código-fonte e configurações versionáveis, evitando conflitos de mesclagem e divergências entre ambientes de desenvolvimento.
 zap-antes/
 zap-depois/
+logs/

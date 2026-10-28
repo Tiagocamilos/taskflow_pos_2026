@@ -19,7 +19,8 @@ FROM python:3.12-alpine AS runtime
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
     HOME=/tmp \
-    TASKFLOW_DATABASE=/app/data/taskflow.db
+    TASKFLOW_DATABASE=/app/data/taskflow.db \
+    TASKFLOW_LOG_FILE=/app/logs/taskflow.log
 
 COPY --from=build /usr/local/lib/python3.12/site-packages /usr/local/lib/python3.12/site-packages
 COPY --from=build /usr/local/bin /usr/local/bin
@@ -30,8 +31,8 @@ WORKDIR /app
 # So a pasta data/ (banco SQLite) e gravavel por ele.
 RUN addgroup -S taskflow && \
     adduser -S -G taskflow -H -s /sbin/nologin taskflow && \
-    mkdir -p /app/data && \
-    chown taskflow:taskflow /app/data
+    mkdir -p /app/data /app/logs && \
+    chown taskflow:taskflow /app/data /app/logs
 
 # Copia SO o necessario; arquivos ficam do root (somente leitura p/ app).
 # static/ guarda o CSS externo exigido pela CSP (sem estilos inline).
