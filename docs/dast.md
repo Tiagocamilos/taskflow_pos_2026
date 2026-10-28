@@ -35,7 +35,7 @@ XXXX
 * **Achado 1**: Stored Cross-Site Scripting (XSS) no campo de descrição de tarefas e parâmetro `og`.
   * **Categorização OWASP Top 10 (2025)**: A05:2025 – Injection.
   * **Evidência**: Payload `<script>alert('XSS')</script>` sendo executado no navegador ao listar tarefas.
-    <img width="823" height="376" alt="{BA32F119-0146-417D-8B7F-08D99AEA0EB6}" src="https://github.com/user-attachments/assets/5288a1a3-d90e-4711-b638-27e0294b1323" />
+  <img width="1270" height="461" alt="result-dast" src="https://github.com/user-attachments/assets/8100b8d2-e404-44c5-af56-436e76152db4" />
 
 * **Achado 2**: Exposição de Endpoint de Debug (`/debug/info`).
   * **Categorização OWASP Top 10 (2025)**: A02:2025 – Security Misconfiguration.
