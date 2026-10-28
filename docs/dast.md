@@ -47,3 +47,11 @@ XXXX
 ## Decisão sobre Anti-CSRF (10202)
 
 <!-- Descreva aqui a decisão do grupo e a justificativa -->
+
+## Resultado
+
+| Status | Antes | Depois |
+|--------|:-----:|:------:|
+| ⚠️ WARN-NEW | 8 | **0** |
+| ⏭️ IGNORE (justificados) | 0 | **3** |
+| ✅ PASS | 60 | **65** |
