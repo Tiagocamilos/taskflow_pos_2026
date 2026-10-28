@@ -21,3 +21,9 @@ taskflow.db
 zap-antes/
 zap-depois/
 logs/
+
+# Terraform
+.terraform/
+*.tfstate
+*.tfstate.*
+*.tfplan
