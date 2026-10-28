@@ -388,3 +388,116 @@ TODO — preencher após o PR de demonstração:
 #### 5.3. Painel de Gestão (`templates/tasks.html`)
 - Interface para visualização e busca de tarefas cadastradas usada pela rota `@app.route("/tasks", methods=["GET"])`.
 - **Garantia Anti-XSS Armazenado:** A renderização via `tasks.html` garante a sanitização de caracteres especiais digitados pelos usuários no `new_task.html` (conversão automática de `<script>` para `&lt;script&gt;`).
+## Atividade 2 — DAST, IaC e Observabilidade
+
+Continuação da Atividade 1 sobre o mesmo repositório: a TaskFlow passa a ser testada **em execução** (DAST), a infraestrutura passa pelos mesmos gates do código (IaC) e o time ganha **visibilidade e resposta a incidentes** (observabilidade).
+
+### Arquitetura
+
+```
+                    Navegador / atacante
+                            │ :5000                       :3000
+                            ▼                               ▼
+ ┌───────────── rede frontend ─────────────┐    ┌──── rede observabilidade ────┐
+ │  web (TaskFlow, gunicorn)               │    │  Grafana ──► Loki ◄── Promtail│
+ │  read_only, cap_drop ALL, healthcheck   │    │  (Loki sem porta no host)     │
+ └───────┬─────────────────────────┬───────┘    └───────────────────▲──────────┘
+         │ rede backend (internal) │ logs JSON                        │ lê ./logs (ro)
+         ▼                         └──────────► ./logs/taskflow.log ──┘
+   db (PostgreSQL simulado)
+   sem porta no host
+```
+
+- `infra/docker-compose.yml`: `web` + `db`. O `db` é o banco **simulado** da Aula 6; a TaskFlow continua em SQLite (volume `taskflow_app_data`).
+- `docker-compose.yml` (raiz): Grafana + Loki + Promtail.
+- `infra/main.tf`: bucket S3 privado, criptografado (KMS), versionado e com logging; security group restrito por variável. Uso didático: **não** executar `terraform apply` em conta real.
+
+### Configuração
+
+```bash
+cp .env.example .env          # preencha os valores; o .env NUNCA vai para o Git
+openssl rand -hex 32          # gera valores aleatórios
+```
+
+| Variável | Uso |
+|---|---|
+| `TASKFLOW_SECRET_KEY`, `TASKFLOW_ADMIN_PASSWORD` | aplicação (o admin é criado com essa senha no primeiro start) |
+| `POSTGRES_USER`, `POSTGRES_PASSWORD`, `POSTGRES_DB` | banco simulado |
+| `GRAFANA_ADMIN_PASSWORD` | login `admin` do Grafana |
+
+Os Composes usam `${VAR:?}`: se alguma variável faltar, eles **não sobem** (nenhum valor padrão inseguro no arquivo).
+
+### Como subir (a partir da raiz)
+
+```bash
+# Aplicação + banco
+mkdir -p logs
+sudo chown "$(docker run --rm --entrypoint id taskflow-web -u):$(docker run --rm --entrypoint id taskflow-web -g)" logs 2>/dev/null || true
+docker compose -f infra/docker-compose.yml --env-file .env up -d --build
+# -> http://<IP>:5000  (usuário admin, senha do .env)
+
+# Observabilidade
+docker compose --env-file .env up -d
+# -> http://<IP>:3000  (usuário admin, senha GRAFANA_ADMIN_PASSWORD) → Explore → Loki
+```
+
+### Workflows
+
+| Workflow | Quando roda | O que faz e o que bloqueia |
+|---|---|---|
+| `ci.yml` | PR e push na `main`, manual | instala dependências e roda `ruff` |
+| `sast.yml` | PR e push na `main`, manual | Semgrep (`p/python`, `p/flask`, `p/security-audit`) e Gitleaks com histórico completo |
+| `sca.yml` | PR e push na `main`, manual, agendado | `pip-audit` no `requirements.txt` |
+| `container.yml` | PR e push na `main`, manual | build da imagem, Trivy (`HIGH,CRITICAL`) e smoke test com flags seguras |
+| **`dast.yml`** | PR e push na `main`, manual | sobe a TaskFlow no runner, faz login, planta um canário de XSS e roda o **ZAP Baseline autenticado**; qualquer alerta fora do `.zap/rules.tsv` bloqueia |
+| **`iac-scan.yml`** | PR e push na `main`, manual (**sem** filtro `paths:`) | `terraform fmt`/`validate`, **Checkov** e **Trivy config** como gates, e validação dos Composes |
+| `hardening-report.yml` | manual | relatório de hardening |
+
+Disparo manual: aba **Actions** → workflow → **Run workflow**, ou `gh workflow run dast.yml`.
+Todos os workflows usam `permissions: contents: read` e actions fixadas por SHA.
+
+### Rodar os scanners localmente
+
+```bash
+# ZAP Baseline (com a app em :5000)
+docker run --rm --network host -v "$(pwd)/zap-out:/zap/wrk:rw" -t ghcr.io/zaproxy/zaproxy:stable \
+  zap-baseline.py -t http://localhost:5000 -c rules.tsv -r relatorio.html   # copie .zap/rules.tsv para zap-out/
+
+# Checkov e Trivy config no Terraform
+docker run --rm -v "$(pwd)/infra:/tf" bridgecrew/checkov -d /tf --framework terraform --compact
+docker run --rm -v "$(pwd)/infra:/tf" aquasec/trivy config --severity HIGH,CRITICAL --exit-code 1 /tf
+
+# Terraform
+cd infra && terraform init -backend=false && terraform validate
+```
+
+### Simulação de incidente
+
+```bash
+./scripts/simular-forca-bruta.sh http://<IP>:5000 admin 40 0.2
+```
+
+Detecção no Grafana com a query do runbook (`docs/runbook-login-bruteforce.md`).
+
+### Documentação
+
+| Documento | Conteúdo |
+|---|---|
+| `docs/dast.md` | achados do ZAP antes × depois, mapeamento ao OWASP Top 10 2025, justificativas do `rules.tsv` |
+| `docs/iac.md` | Compose e Terraform antes × depois, supressões justificadas, desenho do `iac-scan.yml` |
+| `docs/observabilidade.md` | formato dos logs, o que não é logado, consultas LogQL |
+| `docs/runbook-login-bruteforce.md` | runbook NIST SP 800-61 com o ataque executado e a contenção |
+
+### Reaproveitado da Atividade 1
+
+- O build da imagem, as flags de runtime seguras e o pin do Trivy do `container.yml` foram reaproveitados no `dast.yml` para subir a TaskFlow antes do ZAP.
+- O `Dockerfile` hardened (alpine, usuário não-root, gunicorn) é o mesmo usado pelo Compose e pelo DAST; ganhou apenas `HOME=/tmp` (socket do gunicorn com `--read-only`) e as pastas `static/` e `logs/`.
+- Os pins por SHA de `actions/checkout` e `aquasecurity/trivy-action` seguem o padrão da Atividade 1.
+
+### Decisões e riscos aceitos
+
+- **ZAP 10202 (CSRF):** aceito; cookie com `SameSite=Lax`. Token CSRF registrado como melhoria (`docs/dast.md`).
+- **ZAP 10031:** falso positivo comprovado por teste (`docs/dast.md`).
+- **PostgreSQL simulado:** decisão da Aula 6; a aplicação continua em SQLite.
+- **Supressões de IaC:** 7 `checkov:skip` e 1 `trivy:ignore`, todos justificados no `infra/main.tf` e em `docs/iac.md`.
+- **Valores de exemplo no histórico:** o `infra/docker-compose.yml` antigo continha valores padrão de laboratório (`admin123`, `taskflow_pass_secure`) e o Compose de observabilidade usava `admin/admin`. Não eram credenciais reais nem usadas em ambiente algum; os arquivos foram corrigidos para exigir as variáveis do `.env` (`${VAR:?}`).
