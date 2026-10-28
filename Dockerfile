@@ -18,6 +18,7 @@ FROM python:3.12-alpine AS runtime
 # Banco aponta para /app/data: unica pasta gravavel (volume no docker run).
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
+    HOME=/tmp \
     TASKFLOW_DATABASE=/app/data/taskflow.db
 
 COPY --from=build /usr/local/lib/python3.12/site-packages /usr/local/lib/python3.12/site-packages

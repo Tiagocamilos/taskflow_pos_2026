@@ -119,11 +119,14 @@ def init_db():
     #        e gravada sem hash no banco.
     # AGORA: a senha inicial vem do ambiente e e gravada como HASH (com salt).
     #        Se TASKFLOW_ADMIN_PASSWORD nao existir, nenhum usuario e criado.
+    #        INSERT OR IGNORE: o gunicorn sobe varios workers e cada um roda
+    #        init_db() ao importar o app. Com o banco vazio, dois workers
+    #        tentavam criar o admin ao mesmo tempo (UNIQUE constraint failed)
+    #        e o container nao subia. Agora a criacao e idempotente.
     admin_password = os.environ.get("TASKFLOW_ADMIN_PASSWORD")
-    cur = db.execute("SELECT COUNT(*) AS total FROM users")
-    if cur.fetchone()["total"] == 0 and admin_password:
+    if admin_password:
         db.execute(
-            "INSERT INTO users (username, password) VALUES (?, ?)",
+            "INSERT OR IGNORE INTO users (username, password) VALUES (?, ?)",
             ("admin", generate_password_hash(admin_password)),
         )
         db.commit()
