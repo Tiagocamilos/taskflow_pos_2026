@@ -5,6 +5,18 @@ Este documento registra a análise dinâmica de segurança executada com a ferra
 
 ## 2. Comparativo de Achados: Antes vs. Depois
 
+| ID | Alerta | Risco ZAP | Decisão |
+|------:|--------|:---------:|---------|
+| 10020 | Missing Anti-clickjacking Header | 🟠 Medium | **Corrigir:** `X-Frame-Options: DENY` + CSP `frame-ancestors 'none'` |
+| 10038 | CSP Header Not Set | 🟠 Medium | **Corrigir:** `Content-Security-Policy` |
+| 10021 | X-Content-Type-Options Missing | 🟡 Low | **Corrigir:** `nosniff` |
+| 10063 | Permissions Policy Not Set | 🟡 Low | **Corrigir:** `Permissions-Policy` |
+| 90004 | COEP Missing | 🟡 Low | **Corrigir:** `Cross-Origin-Embedder-Policy` (+ COOP/CORP) |
+| 10049 | Non-Storable Content | 🔵 Info | **IGNORE justificado:** o ZAP só informa que as respostas não ficam em cache, que é o desejado |
+| 10111 | Authentication Request Identified | 🔵 Info | **IGNORE justificado:** ele só identifica o formulário de login |
+| 10202 | Absence of Anti-CSRF Tokens | 🟠 Medium | **Decisão do grupo** (ver [abaixo](#decisão-sobre-anti-csrf-10202)) |
+
+
 ### Antes da Correção (Linha de Base Vulnerável)
 * **Achado 1**: Stored Cross-Site Scripting (XSS) no campo de descrição de tarefas e parâmetro `og`.
   * **Categorização OWASP Top 10 (2025)**: A05:2025 – Injection.
@@ -26,18 +38,6 @@ Este documento registra a análise dinâmica de segurança executada com a ferra
 | Stored XSS | A05:2025 - Injection | Corrigido | Uso de templates Jinja2 sem filtro `\| safe`. |
 | Debug Endpoint Exposed | A02:2025 - Security Misconfiguration | Corrigido | Remoção do endpoint e controle por env. |
 | Absence of Anti-CSRF Tokens | A07:2025 - Authentication Failures | Aceito (WARN) | Registrado no `.zap/rules.tsv`. |
-
-
-| ID | Alerta | Risco ZAP | Decisão |
-|------:|--------|:---------:|---------|
-| 10020 | Missing Anti-clickjacking Header | 🟠 Medium | **Corrigir:** `X-Frame-Options: DENY` + CSP `frame-ancestors 'none'` |
-| 10038 | CSP Header Not Set | 🟠 Medium | **Corrigir:** `Content-Security-Policy` |
-| 10021 | X-Content-Type-Options Missing | 🟡 Low | **Corrigir:** `nosniff` |
-| 10063 | Permissions Policy Not Set | 🟡 Low | **Corrigir:** `Permissions-Policy` |
-| 90004 | COEP Missing | 🟡 Low | **Corrigir:** `Cross-Origin-Embedder-Policy` (+ COOP/CORP) |
-| 10049 | Non-Storable Content | 🔵 Info | **IGNORE justificado:** o ZAP só informa que as respostas não ficam em cache, que é o desejado |
-| 10111 | Authentication Request Identified | 🔵 Info | **IGNORE justificado:** ele só identifica o formulário de login |
-| 10202 | Absence of Anti-CSRF Tokens | 🟠 Medium | **Decisão do grupo** (ver [abaixo](#decisão-sobre-anti-csrf-10202)) |
 
 ## Decisão sobre Anti-CSRF (10202)
 
