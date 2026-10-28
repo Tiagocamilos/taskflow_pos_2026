@@ -26,6 +26,17 @@ docker build -t taskflow:hardened .            && trivy image --severity HIGH,CR
 | CVEs HIGH | 368 | 0 |
 | CVEs CRITICAL | 20 | 0 |
 
+## Trivy
+<img width="1600" height="571" alt="trivy" src="https://github.com/user-attachments/assets/75318eb2-0556-4448-80d9-d820d7b5fc33" />
+
+## Checkov
+<img width="1600" height="98" alt="checkov" src="https://github.com/user-attachments/assets/fd78ec90-4209-4421-992d-34425fbffc8e" />
+
+```bash
+suporte@devops:~/devops/devsecops/atividade2/taskflow_pos_2026$ docker run --rm -v /tmp/tf-antes:/tf bridgecrew/checkov -d /tf --framework terraform --compact | grep -E "Passed checks|Failed checks"
+Passed checks: 9, Failed checks: 16, Skipped checks: 0
+```
+
 O gate no CI usa `ignore-unfixed`: CVE sem correção publicada não bloqueia
 (não há versão para atualizar) e, se aparecer, é registrada aqui como risco
 aceito. Riscos aceitos hoje: nenhum.
