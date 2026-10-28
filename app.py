@@ -8,7 +8,10 @@ Vulnerabilidades da linha de base e como foram corrigidas:
   4. Senhas em texto puro           -> hash com salt (werkzeug.security); senha
                                        inicial do admin vem de TASKFLOW_ADMIN_PASSWORD.
   5. Endpoint /debug/info exposto   -> removido (vazava a SECRET_KEY).
-  6. debug=True e host 0.0.0.0      -> removidos; em producao roda via gunicorn.
+  6. debug=True e host 0.0.0.0      -> debug via FLASK_DEBUG (desligado por padrao);
+                                       em producao roda via gunicorn.
+  7. Cabecalhos de seguranca        -> CSP, X-Frame-Options, nosniff etc. (achados
+                                       do ZAP Baseline - Modulo 4).
   (Dependencias com CVE sao tratadas no requirements.txt + pip-audit/Dependabot.)
 """
 
@@ -36,14 +39,43 @@ if not _secret_key:
     )
 app.config["SECRET_KEY"] = _secret_key
 
-# AGORA: cookie de sessao inacessivel via JavaScript e nao enviado em
-# requisicoes cross-site.
+# Cookie de sessao inacessivel via JavaScript e nao enviado em requisicoes
+# cross-site (mitiga roubo de sessao via XSS e CSRF).
 app.config["SESSION_COOKIE_HTTPONLY"] = True
 app.config["SESSION_COOKIE_SAMESITE"] = "Lax"
 
 # Caminho do banco configuravel: no container aponta para /app/data (unica
 # pasta gravavel pelo usuario nao-root). Localmente continua "taskflow.db".
 DATABASE = os.environ.get("TASKFLOW_DATABASE", "taskflow.db")
+
+# Cabecalhos de seguranca aplicados a TODAS as respostas.
+# ANTES: o ZAP Baseline apontou 10020, 10021, 10038, 10063 e 90004
+#        (cabecalhos ausentes - OWASP A02:2025 Security Misconfiguration).
+# AGORA: definidos aqui uma unica vez e aplicados via after_request.
+SECURITY_HEADERS = {
+    # CSP: so carrega recursos da propria origem; proibe ser embutido em
+    # iframe (clickjacking), plugins (object) e envio de formularios para
+    # outros dominios. Sem 'unsafe-inline': scripts/estilos inline sao
+    # bloqueados, uma segunda barreira caso um XSS escape do autoescape.
+    "Content-Security-Policy": (
+        "default-src 'self'; frame-ancestors 'none'; form-action 'self'; "
+        "base-uri 'self'; object-src 'none'"
+    ),
+    "X-Frame-Options": "DENY",  # clickjacking em navegadores antigos
+    "X-Content-Type-Options": "nosniff",  # impede MIME sniffing
+    "Referrer-Policy": "no-referrer",
+    "Permissions-Policy": "camera=(), microphone=(), geolocation=()",
+    "Cross-Origin-Embedder-Policy": "require-corp",
+    "Cross-Origin-Opener-Policy": "same-origin",
+    "Cross-Origin-Resource-Policy": "same-origin",
+}
+
+
+@app.after_request
+def set_security_headers(response):
+    for header, value in SECURITY_HEADERS.items():
+        response.headers.setdefault(header, value)
+    return response
 
 
 def get_db():
@@ -97,9 +129,8 @@ def init_db():
         db.commit()
 
 
-# ANTES: init_db() so era chamado dentro do bloco __main__.
-# AGORA: roda na importacao do modulo, para funcionar tambem com o gunicorn
-#        (que importa o app e nunca executa o bloco __main__).
+# init_db() roda na importacao do modulo, para funcionar tambem com o
+# gunicorn (que importa o app e nunca executa o bloco __main__).
 with app.app_context():
     init_db()
 
@@ -203,36 +234,10 @@ def new_task():
 if __name__ == "__main__":
     # ANTES: app.run(host="0.0.0.0", port=5000, debug=True)
     #        -> debugger do Werkzeug (execucao remota de codigo) exposto na rede.
-    # AGORA: servidor de desenvolvimento so na maquina local, sem debug.
+    # AGORA: servidor de desenvolvimento so na maquina local; debug controlado
+    #        pela variavel FLASK_DEBUG e DESLIGADO por padrao.
     #        Porta 5001 para evitar conflito com o AirPlay do macOS (porta 5000).
-    #        Em producao/container a app roda com gunicorn (ver Dockerfile).
-    app.run(host="127.0.0.1", port=5001)
-
-
-# =============================================================================
-# RESUMO DAS CORREÇÕES E MELHORIAS DE SEGURANÇA NO APP.PY
-# =============================================================================
-
-# Remediacao de SQL Injection (Consultas Parametrizadas)
-# - O que mudou: Uso do placeholder "?" nas consultas no login e na busca por tarefas.
-# - Por quê: Elimina a concatenacao de strings enviadas por usuarios, garantindo que a entrada do usuario seja tratada estritamente como dado e nao executada como instrucao SQL.
-
-# Mitigacao de XSS e Injecao de HTML (Templates Jinja2)
-# - O que mudou: Substituicao de HTML formatado diretamente no codigo por `render_template` com arquivos `.html`.
-# - Por quê: O Jinja2 ativa por padrao o mecanismo de autoescape, convertendo caracteres perigosos (como `<script>`) em entidades HTML seguras (`&lt;script&gt;`), saneando as descricoes de tarefas.
-
-# Remocao de Segredos Hardcoded (TASKFLOW_SECRET_KEY e TASKFLOW_ADMIN_PASSWORD)
-# - O que mudou: Leitura obrigatoria da `SECRET_KEY` e da senha do administrador a partir de variaveis de ambiente (via python-dotenv ou runtime).
-# - Por quê: Previne o vazamento de chaves secretas e senhas padrao no historico de commits do Git e ativa o comportamento de fail-fast caso a chave nao esteja definida.
-
-# Armazenamento Seguro de Credenciais (Hash de Senha)
-# - O que mudou: Utilizacao de `generate_password_hash` e `check_password_hash` da biblioteca Werkzeug.
-# - Por quê: Evita o armazenamento de senhas em texto puro no banco de dados SQLite, aplicando algoritmo de hashing forte com inclusao automatica de salt.
-
-# Remocao de Endpoint Exposto (/debug/info)
-# - O que mudou: Exclusao completa do endpoint `/debug/info`.
-# - Por quê: Impede a exposicao sensivel de informacoes do ambiente e o vazamento do token de sessao/SECRET_KEY.
-
-# Hardening no Servidor de Desenvolvimento e Coockie de Sessao
-# - O que mudou: Desativacao da flag `debug=True`, mudanca do host para `127.0.0.1` e adicao de `SESSION_COOKIE_HTTPONLY = True` e `SESSION_COOKIE_SAMESITE = 'Lax'`.
-# - Por quê: Bloqueia a execucao remota de codigo pelo debugger do Werkzeug na rede local e protege o cookie de sessao contra ataques do tipo CSRF e leitura via JavaScript malicioso.
+    #        Em producao/container a app roda com gunicorn (ver Dockerfile), que
+    #        nunca executa este bloco.
+    debug_mode = os.environ.get("FLASK_DEBUG", "false").lower() in ("1", "true", "yes")
+    app.run(host="127.0.0.1", port=5001, debug=debug_mode)

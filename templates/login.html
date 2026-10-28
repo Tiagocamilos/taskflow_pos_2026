@@ -3,19 +3,21 @@
 <head>
     <meta charset="UTF-8">
     <title>TaskFlow - Login</title>
+    {# CSS em arquivo externo: a CSP (default-src 'self') bloqueia estilos inline. #}
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 <body>
-    {# 
+    {#
       O Jinja2 aplica autoescape automatico para todas as variaveis renderizadas via {{ ... }}.
       Isso impede vulnerabilidades de XSS Refletido e Injecao de HTML na exibicao do erro.
     #}
     <h2>TaskFlow - Autenticação</h2>
 
     {% if error %}
-        <p style="color: red;">{{ error }}</p>
+        <p class="error">{{ error }}</p>
     {% endif %}
 
-    <form method="POST" action="/login">
+    <form method="POST" action="{{ url_for('login') }}">
         <div>
             <label for="username">Usuário:</label>
             <input type="text" id="username" name="username" required autocomplete="off">
