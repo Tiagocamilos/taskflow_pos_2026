@@ -387,4 +387,4 @@ TODO — preencher após o PR de demonstração:
 
 #### 5.3. Painel de Gestão (`templates/tasks.html`)
 - Interface para visualização e busca de tarefas cadastradas usada pela rota `@app.route("/tasks", methods=["GET"])`.
-- **Garantia Anti-XSS Armazenado:** A renderização via `tasks.html` garante a sanitização de caracteres especiais digitados pelos usuários no `new_task.html` (conversão automática de `<script>` para `&lt;script&gt;`).
+- **Garantia Anti-XSS Armazenando:** A renderização via `tasks.html` garante a sanitização de caracteres especiais digitados pelos usuários no `new_task.html` (conversão automática de `<script>` para `&lt;script&gt;`).
