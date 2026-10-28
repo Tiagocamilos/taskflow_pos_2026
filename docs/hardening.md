@@ -26,6 +26,14 @@ docker build -t taskflow:hardened .            && trivy image --severity HIGH,CR
 | CVEs HIGH | 368 | 0 |
 | CVEs CRITICAL | 20 | 0 |
 
+```bash
+Passed checks: X, Failed checks: Y, Skipped checks: 0. Com isso, o “antes” fica:
+
+Scanner	Antes (main.insecure.tf)
+Checkov	Failed checks: [Y]
+Trivy config (HIGH/CRITICAL)	8 (7 HIGH, 1 CRITICAL)
+```
+
 ## Trivy
 <img width="1600" height="571" alt="trivy" src="https://github.com/user-attachments/assets/75318eb2-0556-4448-80d9-d820d7b5fc33" />
 
