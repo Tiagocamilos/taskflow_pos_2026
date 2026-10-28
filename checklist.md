@@ -37,3 +37,8 @@
   * **`requirements.txt`** com pinning exato de versões e pacotes corrigidos sem CVEs ativas.
 
 O projeto TaskFlow está totalmente seguro, atende a todas as boas práticas da OWASP e passa com sucesso em todos os Quality Gates dos pipelines no GitHub Actions.
+
+## Pendências finais (Atividade 2)
+- [ ] Settings → Branches (main): adicionar "DAST - ZAP Baseline (autenticado)" aos required status checks
+- [ ] Settings → Branches (main): marcar "Do not allow bypassing the above settings"
+- [ ] Depois do Módulo 5: adicionar o IaC Security Scan aos required checks

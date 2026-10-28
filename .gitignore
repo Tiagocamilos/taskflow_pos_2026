@@ -18,3 +18,6 @@ taskflow.db
 # Isolamento de Artefatos Locais e Estado da Aplicação
 # - O que mudou: Exclusão do ambiente virtual Python (.venv/), caches de compilação (__pycache__/) e arquivo local de banco de dados SQLite (taskflow.db).
 # - Por quê: Mantém o repositório Git limpo, focado exclusivamente no código-fonte e configurações versionáveis, evitando conflitos de mesclagem e divergências entre ambientes de desenvolvimento.
+zap-antes/
+zap-depois/
+logs/

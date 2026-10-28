@@ -1,0 +1,4 @@
+/* Estilos em arquivo externo: a CSP (default-src 'self') bloqueia estilos inline. */
+.error {
+    color: red;
+}

@@ -1,0 +1,136 @@
+# =============================================================================
+# DAST - OWASP ZAP Baseline contra a TaskFlow subida no proprio runner.
+#
+# Reaproveita da Atividade 1 (container.yml): Dockerfile hardened, flags de
+# runtime seguras e SECRET_KEY aleatoria por execucao.
+#
+# Scan AUTENTICADO: sem login o ZAP so enxerga /login. O workflow faz login
+# com uma senha descartavel e injeta o cookie de sessao em toda requisicao do
+# ZAP (replacer), para que /tasks e /tasks/new tambem sejam analisadas.
+#
+# Canario de XSS armazenado: uma tarefa com <script src="dominio-externo">.
+# Com o autoescape do Jinja2 ela vira texto. Se alguem reintroduzir o XSS
+# (ex.: "| safe" no tasks.html), a tag vai crua para o HTML e o ZAP passivo
+# acusa a regra 10017 (Cross-Domain JavaScript Source File Inclusion).
+#
+# Gate: fail_action: true -> QUALQUER alerta nao listado em .zap/rules.tsv
+# falha o job e bloqueia o merge (required check na main).
+# =============================================================================
+
+name: DAST - ZAP Baseline
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+# Minimo privilegio: so leitura do codigo (o ZAP nao abre issues).
+permissions:
+  contents: read
+
+env:
+  IMAGE_NAME: taskflow
+  DOCKERFILE_PATH: Dockerfile
+  APP_PORT: "5000"
+  TARGET_URL: http://localhost:5000
+  ZAP_RULES_FILE: .zap/rules.tsv
+  WAIT_RETRIES: "30"
+  CANARY_SCRIPT_URL: https://xss-canary.example/payload.js
+
+jobs:
+  dast-baseline:
+    name: DAST - ZAP Baseline (autenticado)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout do codigo
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+
+      - name: Build da imagem Docker
+        run: docker build -f "$DOCKERFILE_PATH" -t "$IMAGE_NAME:$GITHUB_SHA" .
+
+      # Senha descartavel, gerada a cada execucao e mascarada nos logs.
+      # Nada fica salvo em secret nem no repositorio.
+      - name: Gerar credencial efemera do admin
+        run: |
+          ADMIN_PW="$(openssl rand -hex 16)"
+          echo "::add-mask::$ADMIN_PW"
+          echo "ADMIN_PW=$ADMIN_PW" >> "$GITHUB_ENV"
+
+      - name: Subir a TaskFlow com flags de runtime seguras
+        run: |
+          docker volume create taskflow-dast-data
+          docker run -d --name taskflow-dast -p "$APP_PORT:5000" \
+            --read-only --tmpfs /tmp -v taskflow-dast-data:/app/data \
+            --cap-drop ALL --security-opt no-new-privileges \
+            -e TASKFLOW_SECRET_KEY="$(openssl rand -hex 32)" \
+            -e TASKFLOW_ADMIN_PASSWORD="$ADMIN_PW" \
+            "$IMAGE_NAME:$GITHUB_SHA"
+
+      # Espera ATIVA: sem isso o ZAP pode rodar antes da app subir e gerar um
+      # relatorio "limpo" que nao prova nada.
+      - name: Aguardar a aplicacao responder em /login
+        run: |
+          for i in $(seq 1 "$WAIT_RETRIES"); do
+            if curl -fsS -o /dev/null "$TARGET_URL/login"; then
+              echo "Aplicacao respondendo (tentativa $i)."
+              exit 0
+            fi
+            echo "Aguardando aplicacao... ($i/$WAIT_RETRIES)"
+            sleep 2
+          done
+          echo "::error::A aplicacao nao respondeu em /login."
+          exit 1
+
+      - name: Autenticar e plantar canario de XSS armazenado
+        run: |
+          curl -fsS -c cookies.txt -o /dev/null \
+            --data-urlencode "username=admin" \
+            --data-urlencode "password=$ADMIN_PW" \
+            "$TARGET_URL/login"
+          SESSION="$(awk '$6=="session"{print $7}' cookies.txt)"
+          rm -f cookies.txt
+          if [ -z "$SESSION" ]; then
+            echo "::error::Login falhou: cookie de sessao nao recebido."
+            exit 1
+          fi
+          echo "::add-mask::$SESSION"
+          echo "ZAP_SESSION=$SESSION" >> "$GITHUB_ENV"
+
+          code="$(curl -s -o /dev/null -w '%{http_code}' -b "session=$SESSION" "$TARGET_URL/tasks")"
+          if [ "$code" != "200" ]; then
+            echo "::error::/tasks retornou $code com a sessao autenticada."
+            exit 1
+          fi
+
+          curl -fsS -o /dev/null -b "session=$SESSION" \
+            --data-urlencode "title=canario-xss" \
+            --data-urlencode "description=<script src=\"$CANARY_SCRIPT_URL\"></script>" \
+            "$TARGET_URL/tasks/new"
+          echo "Login OK e canario plantado em /tasks."
+
+      - name: OWASP ZAP Baseline (gate)
+        uses: zaproxy/action-baseline@de8ad967d3548d44ef623df22cf95c3b0baf8b25 # v0.15.0
+        with:
+          target: ${{ env.TARGET_URL }}
+          rules_file_name: ${{ env.ZAP_RULES_FILE }}
+          fail_action: true
+          allow_issue_writing: false
+          artifact_name: zap-baseline-report
+          cmd_options: >-
+            -z "-config replacer.full_list(0).description=auth
+            -config replacer.full_list(0).enabled=true
+            -config replacer.full_list(0).matchtype=REQ_HEADER
+            -config replacer.full_list(0).matchstr=Cookie
+            -config replacer.full_list(0).regex=false
+            -config replacer.full_list(0).replacement=session=${{ env.ZAP_SESSION }}"
+
+      - name: Logs da aplicacao (se falhar)
+        if: failure()
+        run: docker logs taskflow-dast || true
+
+      - name: Encerrar o container
+        if: always()
+        run: docker rm -f taskflow-dast || true
