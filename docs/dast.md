@@ -5,6 +5,7 @@ Este documento registra a análise dinâmica de segurança executada com a ferra
 
 ## 2. Comparativo de Achados: Antes vs. Depois
 
+Antes:
 | ID | Alerta | Risco ZAP | Decisão |
 |------:|--------|:---------:|---------|
 | 10020 | Missing Anti-clickjacking Header | 🟠 Medium | **Corrigir:** `X-Frame-Options: DENY` + CSP `frame-ancestors 'none'` |
@@ -15,6 +16,10 @@ Este documento registra a análise dinâmica de segurança executada com a ferra
 | 10049 | Non-Storable Content | 🔵 Info | **IGNORE justificado:** o ZAP só informa que as respostas não ficam em cache, que é o desejado |
 | 10111 | Authentication Request Identified | 🔵 Info | **IGNORE justificado:** ele só identifica o formulário de login |
 | 10202 | Absence of Anti-CSRF Tokens | 🟠 Medium | **Decisão do grupo** (ver [abaixo](#decisão-sobre-anti-csrf-10202)) |
+
+Depois:
+
+XXXX
 
 
 ### Antes da Correção (Linha de Base Vulnerável)
