@@ -23,7 +23,7 @@ XXXX
 
 
 ### Antes da Correção (Linha de Base Vulnerável)
-## Resultado
+## Resultado Final do ZAP
 
 | Status | Antes | Depois |
 |--------|:-----:|:------:|
