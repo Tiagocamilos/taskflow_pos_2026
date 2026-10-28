@@ -23,6 +23,15 @@ XXXX
 
 
 ### Antes da Correção (Linha de Base Vulnerável)
+## Resultado
+
+| Status | Antes | Depois |
+|--------|:-----:|:------:|
+| ⚠️ WARN-NEW | 8 | **0** |
+| ⏭️ IGNORE (justificados) | 0 | **3** |
+| ✅ PASS | 60 | **65** |
+
+
 * **Achado 1**: Stored Cross-Site Scripting (XSS) no campo de descrição de tarefas e parâmetro `og`.
   * **Categorização OWASP Top 10 (2025)**: A05:2025 – Injection.
   * **Evidência**: Payload `<script>alert('XSS')</script>` sendo executado no navegador ao listar tarefas.
@@ -48,10 +57,3 @@ XXXX
 
 <!-- Descreva aqui a decisão do grupo e a justificativa -->
 
-## Resultado
-
-| Status | Antes | Depois |
-|--------|:-----:|:------:|
-| ⚠️ WARN-NEW | 8 | **0** |
-| ⏭️ IGNORE (justificados) | 0 | **3** |
-| ✅ PASS | 60 | **65** |
