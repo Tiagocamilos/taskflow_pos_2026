@@ -19,7 +19,8 @@
   <ul>
     {% for row in rows %}
     <li>
-      <b>{{ row["title"] }}</b> - {{ row["description"] }}
+   <!-- <b>{{ row["title"] }}</b> - {{ row["description"]}}  Certo  -->    
+      <b>{{ row["title"] }}</b> - {{ row["description"]  | safe}}
       {% if row["done"] %}(feita){% endif %}
     </li>
     {% else %}
