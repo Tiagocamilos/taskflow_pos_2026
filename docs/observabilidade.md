@@ -30,6 +30,8 @@ sum by (ip) (count_over_time({job="taskflow"} | json | event = "login_failure" [
 3. **Loki (Datastore):** Armazena e indexa os logs com base nos rótulos recebidos.
 4. **Grafana (Visualização):** Conecta-se ao Loki como Datasource e executa queries LogQL para dashboards e alertas.
 
+<img width="1109" height="576" alt="image" src="https://github.com/user-attachments/assets/bf0b2602-24cf-4415-a782-6796e71cf630" />
+
 ---
 
 ## 2. Consultas LogQL Testadas
