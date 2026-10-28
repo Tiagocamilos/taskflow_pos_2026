@@ -12,7 +12,7 @@ A TaskFlow emite logs estruturados em formato JSON no arquivo `logs/taskflow.log
 
 ## 2. Consultas LogQL Utilizadas no Grafana
 
-<img width="1618" height="814" alt="{E38E64D3-C32F-4E2D-B0FE-825EAD7054F3}" src="https://github.com/user-attachments/assets/ba34868e-d9c8-4c1f-931e-b974ffa1278c" />
+<img width="1600" height="575" alt="log-grafana" src="https://github.com/user-attachments/assets/90d01e66-f106-44ba-abc5-86d7f9307591" />
 
 ### Query
 ```bash
