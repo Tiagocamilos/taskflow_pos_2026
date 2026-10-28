@@ -3,7 +3,8 @@
 10049	IGNORE	(Non-Storable Content - informativo: indica que as respostas nao ficam em cache, comportamento desejado para paginas com sessao)
 10111	IGNORE	(Authentication Request Identified - informativo: ZAP apenas identifica o formulario de login, nao e vulnerabilidade)
 10202	IGNORE	(Absence of Anti-CSRF Tokens - risco aceito: cookie de sessao com SameSite=Lax nao e enviado em POST cross-site; token CSRF via Flask-WTF registrado como melhoria em docs/dast.md)
-10031	IGNORE	(User Controllable HTML Element Attribute - informativo: q e refletido no value do campo de busca, mas o autoescape do Jinja2 escapa aspas e < >; payload "><script> testado e renderizado como &#34;&gt;&lt;script&gt;, sem sair do atributo. Evidencia em docs/dast.md)
+10031	IGNORE	(User Controllable HTML Element Attribute - informativo: q e refletido no value do campo de busca, mas o autoescape do Jinja2 escapa aspas e < >; payload "><script> testado e renderizado como 
+sem sair do atributo. Evidencia em docs/dast.md)
 
 ## Esteira GITHUB
 
